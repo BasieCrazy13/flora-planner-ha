@@ -131,6 +131,10 @@ sequence:
       entity_id: input_number.oogstmaand
     data:
       value: "{{ ai_advies.harvesting_month | int(default=0) }}"
+  - service: persistent_notification.create
+    data:
+      title: "Advies voor {{ states('input_text.nieuwe_plant_naam') }}"
+      message: "{{ ai_advies.advice }}"
 mode: single
 icon: mdi:robot
 ```
