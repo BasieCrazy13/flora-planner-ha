@@ -25,7 +25,7 @@ from .const import (
     CONF_SOW_MONTH, CONF_HARVEST_MONTH, CONF_SPRINKLER_ENTITY,
     CONF_CYCLE_MINUTES, CONF_SOAK_MINUTES, CONF_MAX_CYCLES,
     CONF_DROUGHT_ONLY, CONF_WATER_START_MONTH, CONF_WATER_END_MONTH,
-    CONF_FEED_START_MONTH, CONF_FEED_END_MONTH
+    CONF_FEED_START_MONTH, CONF_FEED_END_MONTH, CONF_AUTO_WATER
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -150,6 +150,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         plant_schema = vol.Schema({
             vol.Required(CONF_WATER_INTERVAL, default=ai_suggestions.get("water", 7)): cv.positive_int,
             vol.Optional(CONF_DROUGHT_ONLY, default=ai_suggestions.get("drought_only", False)): BooleanSelector(),
+            vol.Optional(CONF_AUTO_WATER, default=True): BooleanSelector(),
             vol.Required(CONF_WATER_START_MONTH, default=ai_suggestions.get("water_start", "1")): SelectSelector(SelectSelectorConfig(options=list(MONTHS.keys()), mode=SelectSelectorMode.DROPDOWN)),
             vol.Required(CONF_WATER_END_MONTH, default=ai_suggestions.get("water_end", "12")): SelectSelector(SelectSelectorConfig(options=list(MONTHS.keys()), mode=SelectSelectorMode.DROPDOWN)),
             vol.Required(CONF_FEED_INTERVAL, default=ai_suggestions.get("feed", 30)): cv.positive_int,

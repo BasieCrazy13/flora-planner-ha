@@ -7,7 +7,7 @@ import json
 import voluptuous as vol
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -27,6 +27,7 @@ from .const import (
     COLD_THRESHOLD,
     CONF_GEMINI_API_KEY,
     ATTR_WEEKLY_STORY,
+    CONF_AUTO_WATER,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -80,6 +81,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 "harvesting_month": str(call.data.get("harvesting_month", 0)),
                 "min_moisture": int(call.data.get("min_moisture", 20)),
                 "drought_only": bool(call.data.get("drought_only", False)),
+                "auto_water": bool(call.data.get("auto_water", True)),
             }
 
             # Als AI aanstaat (via de oude methode), probeer gegevens op te halen

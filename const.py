@@ -27,6 +27,7 @@ CONF_ANCHOR_DATE: Final = "anchor_date"
 CONF_SOIL_MOISTURE_ENTITY: Final = "soil_moisture_entity"
 CONF_MIN_MOISTURE: Final = "min_moisture"
 CONF_DROUGHT_ONLY: Final = "drought_only"
+CONF_AUTO_WATER: Final = "auto_water"
 
 # Weather & Soil Logic
 TEMP_THRESHOLD: Final = 28  # Celsius

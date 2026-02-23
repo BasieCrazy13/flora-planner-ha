@@ -55,7 +55,8 @@
           "feeding_interval": "Feed Interval (days)",
           "pruning_month": "Pruning Month",
           "soil_moisture_entity": "Soil Moisture Sensor (Optional)",
-          "min_moisture": "Minimum Soil Moisture (%)"
+          "min_moisture": "Minimum Soil Moisture (%)",
+          "auto_water": "Connected to automatic sprinkler?"
         }
       },
       "remove_plant": {

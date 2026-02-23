@@ -25,6 +25,7 @@ from .const import (
     CONF_PLANTS,
     CONF_SOIL_MOISTURE_ENTITY,
     CONF_MIN_MOISTURE,
+    CONF_AUTO_WATER,
     SOIL_MOISTURE_THRESHOLD,
 )
 from . import FloraPlannerCoordinator
@@ -138,6 +139,10 @@ class FloraPlannerSmartWateringSwitch(CoordinatorEntity, SwitchEntity):
         
         has_sensors = False
         for plant in plants:
+            # Als plant niet op automatische sproeier zit, negeren we hem voor de switch
+            if not plant.get(CONF_AUTO_WATER, True):
+                continue
+
             sensor = plant.get(CONF_SOIL_MOISTURE_ENTITY)
             threshold = plant.get(CONF_MIN_MOISTURE, SOIL_MOISTURE_THRESHOLD)
             

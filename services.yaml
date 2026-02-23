@@ -52,6 +52,12 @@ add_plant:
       default: false
       selector:
         boolean:
+    auto_water:
+      name: Aangesloten op automatische sproeier?
+      description: Indien uit, wordt deze plant genegeerd door de slimme sproeier schakelaar.
+      default: true
+      selector:
+        boolean:
     water_start_month:
       name: Startmaand Water
       default: 1

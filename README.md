@@ -89,7 +89,7 @@ content: >
 
 Wil je snel planten toevoegen vanaf je dashboard? Omdat Home Assistant geen standaard invulformulier heeft, moet je hiervoor een aantal **Helpers** aanmaken.
 
-1.  **Maak deze 12 Helpers aan:**
+1.  **Maak deze 13 Helpers aan:**
     Ga naar **Instellingen** -> **Apparaten & Diensten** -> **Helpers** en maak de volgende items aan:
 
     | Type | Naam | Entity ID (automatisch) | Instellingen |
@@ -106,6 +106,7 @@ Wil je snel planten toevoegen vanaf je dashboard? Omdat Home Assistant geen stan
     | **Nummer** | Zaaimaand | `input_number.zaaimaand` | Min: 0, Max: 12 |
     | **Nummer** | Oogstmaand | `input_number.oogstmaand` | Min: 0, Max: 12 |
     | **Schakelaar** | Alleen bij Droogte | `input_boolean.alleen_bij_droogte` | - |
+    | **Schakelaar** | Automatisch Wateren | `input_boolean.automatisch_wateren` | - |
 
 2.  **Maak de Scripts aan:**
     Ga naar **Instellingen** -> **Automatiseringen & Scenes** -> **Scripts** en maak twee scripts aan (in YAML modus):
@@ -174,6 +175,9 @@ sequence:
       - service: input_boolean.turn_off
         target:
           entity_id: input_boolean.alleen_bij_droogte
+  - service: input_boolean.turn_on
+    target:
+      entity_id: input_boolean.automatisch_wateren
   - service: persistent_notification.create
     data:
       title: "Advies voor {{ states('input_text.nieuwe_plant_naam') }}"

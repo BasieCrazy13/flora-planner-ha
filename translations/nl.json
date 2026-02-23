@@ -57,7 +57,8 @@
           "soil_moisture_entity": "Bodemvochtigheidssensor (Optioneel)",
           "sowing_month": "Zaaimaand (Optioneel)",
           "harvesting_month": "Oogstmaand (Optioneel)",
-          "min_moisture": "Minimale bodemvochtigheid (%)"
+          "min_moisture": "Minimale bodemvochtigheid (%)",
+          "auto_water": "Aangesloten op automatische sproeier?"
         }
       },
       "remove_plant": {
