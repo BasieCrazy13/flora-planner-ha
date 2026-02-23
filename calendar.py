@@ -12,9 +12,13 @@ from .const import (
     CONF_ZONE_NAME,
     CONF_PLANTS,
     CONF_PRUNE_MONTH,
+    CONF_SOW_MONTH,
+    CONF_HARVEST_MONTH,
     EVENT_WATER,
     EVENT_FEED,
     EVENT_PRUNE,
+    EVENT_SOW,
+    EVENT_HARVEST,
 )
 from . import FloraPlannerCoordinator
 
@@ -62,6 +66,8 @@ class FloraPlannerCalendar(CoordinatorEntity, CalendarEntity):
             water_interval = plant["watering_interval"]
             feed_interval = plant["feeding_interval"]
             prune_month = int(plant[CONF_PRUNE_MONTH])
+            sow_month = int(plant.get(CONF_SOW_MONTH, 0))
+            harvest_month = int(plant.get(CONF_HARVEST_MONTH, 0))
 
             # Iterate through the date range to generate events
             current_date = start_date.date()
@@ -82,6 +88,14 @@ class FloraPlannerCalendar(CoordinatorEntity, CalendarEntity):
                 # Pruning
                 if current_date.month == prune_month and current_date.day == 1:
                      events.append(self._create_event(current_date, f"Prune {plant_name}", EVENT_PRUNE))
+
+                # Sowing
+                if sow_month > 0 and current_date.month == sow_month and current_date.day == 1:
+                     events.append(self._create_event(current_date, f"Sow {plant_name}", EVENT_SOW))
+
+                # Harvesting
+                if harvest_month > 0 and current_date.month == harvest_month and current_date.day == 1:
+                     events.append(self._create_event(current_date, f"Harvest {plant_name}", EVENT_HARVEST))
 
                 current_date += timedelta(days=1)
 

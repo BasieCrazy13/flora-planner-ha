@@ -21,7 +21,8 @@ from .const import (
     DOMAIN, CONF_ZONE_NAME, CONF_WEATHER_ENTITY, CONF_PLANTS,
     CONF_PLANT_NAME, CONF_WATER_INTERVAL, CONF_FEED_INTERVAL,
     CONF_PRUNE_MONTH, CONF_ANCHOR_DATE, CONF_USE_AI,
-    CONF_SOIL_MOISTURE_ENTITY, CONF_GEMINI_API_KEY
+    CONF_SOIL_MOISTURE_ENTITY, CONF_GEMINI_API_KEY,
+    CONF_SOW_MONTH, CONF_HARVEST_MONTH
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -145,6 +146,12 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             vol.Required(CONF_PRUNE_MONTH, default=ai_suggestions.get("prune", "6")): SelectSelector(
                 SelectSelectorConfig(options=list(MONTHS.keys()), mode=SelectSelectorMode.DROPDOWN, translation_key="pruning_months")
             ),
+            vol.Optional(CONF_SOW_MONTH, default=ai_suggestions.get("sow", "0")): SelectSelector(
+                SelectSelectorConfig(options=[{"value": "0", "label": "Niet van toepassing"}] + [{"value": k, "label": v} for k, v in MONTHS.items()], mode=SelectSelectorMode.DROPDOWN)
+            ),
+            vol.Optional(CONF_HARVEST_MONTH, default=ai_suggestions.get("harvest", "0")): SelectSelector(
+                SelectSelectorConfig(options=[{"value": "0", "label": "Niet van toepassing"}] + [{"value": k, "label": v} for k, v in MONTHS.items()], mode=SelectSelectorMode.DROPDOWN)
+            ),
             vol.Optional(CONF_SOIL_MOISTURE_ENTITY): EntitySelector(
                 EntitySelectorConfig(domain="sensor", device_class="moisture")
             ),
@@ -160,13 +167,13 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
     async def _get_ai_suggestions(self, plant_name: str) -> Dict[str, Any]:
         """Get plant care suggestions from Gemini."""
         prompt = (
-            f"Voor de plant '{plant_name}', geef een JSON-object met 'watering_interval' in dagen, "
-            f"'feeding_interval' in dagen, en 'pruning_month' als een nummer (1-12). "
-            f"Geef alleen de JSON terug."
+            f"Voor de plant '{plant_name}', geef een JSON-object met 'watering_interval' (dagen), "
+            f"'feeding_interval' (dagen), 'pruning_month' (1-12), 'sowing_month' (1-12, 0=nvt), 'harvesting_month' (1-12, 0=nvt). "
+            f"Geef alleen JSON."
         )
         api_key = self.config_entry.data.get(CONF_GEMINI_API_KEY)
         session = async_get_clientsession(self.hass)
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={api_key}"
         
         payload = {
             "contents": [{"parts": [{"text": prompt}]}]
@@ -201,10 +208,20 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         if prune not in MONTHS:
             prune = "1" # Fallback: Januari
 
+        sow = str(data.get("sowing_month", 0))
+        if sow not in MONTHS and sow != "0":
+            sow = "0"
+
+        harvest = str(data.get("harvesting_month", 0))
+        if harvest not in MONTHS and harvest != "0":
+            harvest = "0"
+
         return {
             "water": water,
             "feed": feed,
             "prune": prune,
+            "sow": sow,
+            "harvest": harvest,
         }
 
     async def async_step_remove_plant(self, user_input=None):

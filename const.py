@@ -13,6 +13,8 @@ CONF_USE_AI: Final = "use_ai"
 CONF_WATER_INTERVAL: Final = "watering_interval"
 CONF_FEED_INTERVAL: Final = "feeding_interval"
 CONF_PRUNE_MONTH: Final = "pruning_month"
+CONF_SOW_MONTH: Final = "sowing_month"
+CONF_HARVEST_MONTH: Final = "harvesting_month"
 CONF_ANCHOR_DATE: Final = "anchor_date"
 CONF_SOIL_MOISTURE_ENTITY: Final = "soil_moisture_entity"
 
@@ -28,6 +30,8 @@ PLATFORMS: Final = ["sensor", "binary_sensor", "calendar"]
 EVENT_WATER = "water"
 EVENT_FEED = "feed"
 EVENT_PRUNE = "prune"
+EVENT_SOW = "sow"
+EVENT_HARVEST = "harvest"
 
 # Attributes & State
 ATTR_WATERING_REQUIRED = "watering_required"

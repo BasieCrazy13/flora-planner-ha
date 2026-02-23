@@ -12,6 +12,7 @@ import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.components import persistent_notification
 
 from .const import (
     DOMAIN,
@@ -83,6 +84,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 "watering_interval": call.data.get("watering_interval", 7),
                 "feeding_interval": call.data.get("feeding_interval", 30),
                 "pruning_month": str(call.data.get("pruning_month", 1)),
+                "sowing_month": str(call.data.get("sowing_month", 0)),
+                "harvesting_month": str(call.data.get("harvesting_month", 0)),
             }
 
             # Als AI aanstaat, probeer gegevens op te halen
@@ -91,8 +94,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 if api_key:
                     try:
                         session = async_get_clientsession(hass)
-                        prompt = f"Voor de plant '{plant_name}', geef JSON met 'watering_interval' (dagen), 'feeding_interval' (dagen), 'pruning_month' (1-12)."
-                        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+                        prompt = f"Voor de plant '{plant_name}', geef JSON met 'watering_interval' (dagen), 'feeding_interval' (dagen), 'pruning_month' (1-12), 'sowing_month' (1-12, 0 als nvt), 'harvesting_month' (1-12, 0 als nvt)."
+                        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={api_key}"
                         payload = {"contents": [{"parts": [{"text": prompt}]}]}
                         
                         async with session.post(url, json=payload) as response:
@@ -118,8 +121,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                                 if ai_prune in ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"]:
                                     plant_data["pruning_month"] = ai_prune
 
+                                # Zaaien & Oogsten
+                                ai_sow = str(ai_data.get("sowing_month"))
+                                if ai_sow in [str(i) for i in range(13)]:
+                                    plant_data["sowing_month"] = ai_sow
+                                
+                                ai_harvest = str(ai_data.get("harvesting_month"))
+                                if ai_harvest in [str(i) for i in range(13)]:
+                                    plant_data["harvesting_month"] = ai_harvest
+
                     except Exception as e:
                         _LOGGER.warning(f"AI service call mislukt voor {plant_name}: {e}")
+                        persistent_notification.async_create(hass, f"AI mislukt voor {plant_name}, standaardwaarden gebruikt.", "Flora Planner")
 
             # Update de configuratie
             current_plants = list(entry_to_update.options.get(CONF_PLANTS, []))
@@ -129,6 +142,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 entry_to_update, 
                 options={**entry_to_update.options, CONF_PLANTS: current_plants}
             )
+            persistent_notification.async_create(hass, f"Plant '{plant_name}' succesvol toegevoegd aan {zone_name or 'je zone'}!", "Flora Planner")
 
         hass.services.async_register(DOMAIN, "add_plant", async_handle_add_plant)
 
@@ -320,7 +334,7 @@ class FloraPlannerCoordinator(DataUpdateCoordinator):
             return "Controleer je API key configuratie."
 
         session = async_get_clientsession(self.hass)
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={api_key}"
         payload = {"contents": [{"parts": [{"text": prompt}]}]}
 
         try:

@@ -88,13 +88,14 @@ content: >
 
 ## 🎨 Dashboard Kaart voor Planten Toevoegen
 
-Wil je snel planten toevoegen vanaf je dashboard? Omdat we variabelen gebruiken (de tekstvelden), moeten we hiervoor een **Script** gebruiken in Home Assistant.
+Wil je snel planten toevoegen vanaf je dashboard?
 
-1.  **Maak eerst drie helpers aan:**
+1.  **Maak eerst de helpers aan:**
     *   Ga naar **Instellingen** -> **Apparaten & Diensten** -> **Helpers**.
     *   Maak een **Tekst** helper aan met naam `Nieuwe Plant Naam` (entity id: `input_text.nieuwe_plant_naam`).
     *   Maak een **Tekst** helper aan met naam `Flora Zone Naam` (entity id: `input_text.flora_zone_naam`).
     *   Maak een **Schakelaar** helper aan met naam `Gebruik AI voor Plant` (entity id: `input_boolean.gebruik_ai_voor_plant`).
+    *   *(Optioneel voor handmatig)* Maak een **Nummer** helper aan: `Water Interval` (entity id: `input_number.water_interval`, min 1, max 60).
 
 2.  **Maak een Script aan:**
     *   Ga naar **Instellingen** -> **Automatiseringen & Scenes** -> **Scripts**.
@@ -110,6 +111,8 @@ sequence:
       zone_name: "{{ states('input_text.flora_zone_naam') }}"
       plant_name: "{{ states('input_text.nieuwe_plant_naam') }}"
       use_ai: "{{ states('input_boolean.gebruik_ai_voor_plant') }}"
+      # Als AI uit staat, gebruiken we deze waarde:
+      watering_interval: "{{ states('input_number.water_interval') | int }}"
   - service: input_text.set_value
     target:
       entity_id: input_text.nieuwe_plant_naam

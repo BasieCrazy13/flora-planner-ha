@@ -50,7 +50,9 @@
           "watering_interval": "Watergeef-interval (dagen)",
           "feeding_interval": "Voedings-interval (dagen)",
           "pruning_month": "Snoeimaand",
-          "soil_moisture_entity": "Bodemvochtigheidssensor (Optioneel)"
+          "soil_moisture_entity": "Bodemvochtigheidssensor (Optioneel)",
+          "sowing_month": "Zaaimaand (Optioneel)",
+          "harvesting_month": "Oogstmaand (Optioneel)"
         }
       },
       "remove_plant": {
