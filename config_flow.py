@@ -181,7 +181,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         )
         api_key = self.config_entry.data.get(CONF_GEMINI_API_KEY)
         session = async_get_clientsession(self.hass)
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={api_key}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
         
         payload = {
             "contents": [{"parts": [{"text": prompt}]}]

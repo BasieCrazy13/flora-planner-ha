@@ -87,7 +87,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     try:
                         session = async_get_clientsession(hass)
                         prompt = f"Voor de plant '{plant_name}', geef JSON met 'watering_interval' (dagen), 'feeding_interval' (dagen), 'pruning_month' (1-12), 'sowing_month' (1-12, 0 als nvt), 'harvesting_month' (1-12, 0 als nvt)."
-                        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={api_key}"
+                        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
                         payload = {"contents": [{"parts": [{"text": prompt}]}]}
                         
                         async with session.post(url, json=payload) as response:
@@ -166,7 +166,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     f"waarom deze vochtigheid, signalen van te veel/weinig water, en specifieke seizoens/snoei tips). "
                     f"Geef alleen de JSON string terug zonder markdown opmaak."
                 )
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={api_key}"
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
                 payload = {"contents": [{"parts": [{"text": prompt}]}]}
                 
                 async with session.post(url, json=payload) as response:
@@ -389,7 +389,7 @@ class FloraPlannerCoordinator(DataUpdateCoordinator):
             return "Controleer je API key configuratie."
 
         session = async_get_clientsession(self.hass)
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={api_key}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
         payload = {"contents": [{"parts": [{"text": prompt}]}]}
 
         try:

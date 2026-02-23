@@ -99,10 +99,10 @@ Wil je snel planten toevoegen vanaf je dashboard?
     *   *(Optioneel voor handmatig)* Maak een **Nummer** helper aan: `Zaaimaand` (entity id: `input_number.zaaimaand`, min 0, max 12).
     *   *(Optioneel voor handmatig)* Maak een **Nummer** helper aan: `Oogstmaand` (entity id: `input_number.oogstmaand`, min 0, max 12).
 
-2.  **Maak de Scripts aan:**
+2.  **Maak de Scripts aan (Instellingen -> Automatiseringen & Scenes -> Scripts):**
     *   Ga naar **Instellingen** -> **Automatiseringen & Scenes** -> **Scripts**.
     
-    **Script 1: Flora AI Advies (Sla op als `flora_ai_advies`)**
+    **Script 1: Flora AI Advies (Entity ID: `script.flora_ai_advies`)**
 ```yaml
 alias: Flora AI Advies
 sequence:
