@@ -181,16 +181,23 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         )
         api_key = self.config_entry.data.get(CONF_GEMINI_API_KEY)
         session = async_get_clientsession(self.hass)
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
         
-        payload = {
-            "contents": [{"parts": [{"text": prompt}]}]
-        }
+        models = ["gemini-1.5-flash", "gemini-pro"]
+        result = None
         
-        async with session.post(url, json=payload) as response:
-            if response.status != 200:
-                raise Exception(f"API Error: {response.status}")
-            result = await response.json()
+        for model in models:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+            payload = {"contents": [{"parts": [{"text": prompt}]}]}
+            try:
+                async with session.post(url, json=payload) as response:
+                    if response.status == 200:
+                        result = await response.json()
+                        break
+            except Exception:
+                continue
+        
+        if not result:
+            raise Exception("Kon geen verbinding maken met Gemini (alle modellen geprobeerd).")
         
         try:
             # Extract text from Gemini response structure

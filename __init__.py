@@ -30,6 +30,28 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
+async def _call_gemini_api(hass: HomeAssistant, api_key: str, prompt: str) -> str:
+    """Call Gemini API with fallback models."""
+    session = async_get_clientsession(hass)
+    models = ["gemini-1.5-flash", "gemini-pro"]
+    
+    for model in models:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+        payload = {"contents": [{"parts": [{"text": prompt}]}]}
+        try:
+            async with session.post(url, json=payload) as response:
+                if response.status == 200:
+                    result = await response.json()
+                    return result["candidates"][0]["content"]["parts"][0]["text"]
+                elif response.status == 404:
+                    _LOGGER.warning(f"Model {model} niet gevonden (404), proberen volgende...")
+                    continue
+                else:
+                    _LOGGER.error(f"Gemini API error bij model {model}: {response.status}")
+        except Exception as e:
+            _LOGGER.error(f"Fout bij aanroepen Gemini {model}: {e}")
+    
+    raise Exception("Alle Gemini modellen faalden.")
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Flora Planner from a config entry."""
@@ -85,19 +107,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 api_key = entry_to_update.data.get(CONF_GEMINI_API_KEY)
                 if api_key:
                     try:
-                        session = async_get_clientsession(hass)
                         prompt = f"Voor de plant '{plant_name}', geef JSON met 'watering_interval' (dagen), 'feeding_interval' (dagen), 'pruning_month' (1-12), 'sowing_month' (1-12, 0 als nvt), 'harvesting_month' (1-12, 0 als nvt)."
-                        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
-                        payload = {"contents": [{"parts": [{"text": prompt}]}]}
                         
-                        async with session.post(url, json=payload) as response:
-                            if response.status == 200:
-                                result = await response.json()
-                                text = result["candidates"][0]["content"]["parts"][0]["text"]
-                                clean_text = text.strip().replace("```json", "").replace("```", "")
-                                ai_data = json.loads(clean_text)
-                                
-                                # --- Sanity Check ---
+                        text = await _call_gemini_api(hass, api_key, prompt)
+                        clean_text = text.strip().replace("```json", "").replace("```", "")
+                        ai_data = json.loads(clean_text)
+                        
+                        # --- Sanity Check ---
                                 # Water: Tussen 1 en 60 dagen
                                 ai_water = ai_data.get("watering_interval")
                                 if isinstance(ai_water, int) and 1 <= ai_water <= 60:
@@ -156,7 +172,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 raise Exception("Geen API key gevonden in Flora Planner configuratie.")
 
             try:
-                session = async_get_clientsession(hass)
                 # We voegen de zone/locatie toe aan de prompt voor beter advies
                 prompt = (
                     f"Voor de plant '{plant_name}' (locatie: {zone_name}), geef een JSON-object met: "
@@ -166,17 +181,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     f"waarom deze vochtigheid, signalen van te veel/weinig water, en specifieke seizoens/snoei tips). "
                     f"Geef alleen de JSON string terug zonder markdown opmaak."
                 )
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
-                payload = {"contents": [{"parts": [{"text": prompt}]}]}
                 
-                async with session.post(url, json=payload) as response:
-                    if response.status == 200:
-                        result = await response.json()
-                        text = result["candidates"][0]["content"]["parts"][0]["text"]
-                        clean_text = text.strip().replace("```json", "").replace("```", "")
-                        return json.loads(clean_text)
-                    else:
-                        raise Exception(f"AI API error: {response.status}")
+                text = await _call_gemini_api(hass, api_key, prompt)
+                clean_text = text.strip().replace("```json", "").replace("```", "")
+                data = json.loads(clean_text)
+                
+                # Zorg dat advice altijd bestaat
+                if "advice" not in data:
+                    data["advice"] = "Geen specifiek advies ontvangen van AI."
+                
+                return data
+
             except Exception as e:
                 _LOGGER.error(f"AI advies mislukt: {e}")
                 # Geef veilige defaults terug als het mislukt
@@ -187,7 +202,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     "pruning_month": 1, 
                     "sowing_month": 0, 
                     "harvesting_month": 0,
-                    "advice": "Kon geen advies ophalen. Controleer de logs."
+                    "advice": f"Kon geen advies ophalen (Fout: {str(e)}). Controleer je API key en internetverbinding."
                 }
 
         hass.services.async_register(DOMAIN, "get_ai_advice", async_handle_get_ai_advice, supports_response=SupportsResponse.ONLY)
@@ -388,19 +403,9 @@ class FloraPlannerCoordinator(DataUpdateCoordinator):
             _LOGGER.error("Geen API key gevonden voor verhaal generatie.")
             return "Controleer je API key configuratie."
 
-        session = async_get_clientsession(self.hass)
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
-        payload = {"contents": [{"parts": [{"text": prompt}]}]}
-
         try:
-            async with session.post(url, json=payload) as response:
-                if response.status == 200:
-                    result = await response.json()
-                    text = result["candidates"][0]["content"]["parts"][0]["text"]
-                    return text.strip().replace('\n', ' ')
-                else:
-                    _LOGGER.error(f"Gemini API error: {response.status}")
-                    raise Exception(f"API returned {response.status}")
+            text = await _call_gemini_api(self.hass, api_key, prompt)
+            return text.strip().replace('\n', ' ')
         except Exception as e:
             _LOGGER.warning(f"Could not generate weekly story with Gemini: {e}")
             if language == "nl":
