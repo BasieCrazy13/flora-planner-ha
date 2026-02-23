@@ -186,10 +186,25 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         except (KeyError, IndexError, json.JSONDecodeError) as e:
             raise Exception(f"Failed to parse AI response: {e}")
         
+        # --- Sanity Check (Geloofwaardigheidscheck) ---
+        # We controleren of de waarden logisch zijn. Zo niet, vallen we terug op defaults.
+        
+        water = data.get("watering_interval", 7)
+        if not isinstance(water, int) or water < 1 or water > 60:
+            water = 7 # Fallback: 1 week
+
+        feed = data.get("feeding_interval", 30)
+        if not isinstance(feed, int) or feed < 1 or feed > 365:
+            feed = 30 # Fallback: 1 maand
+
+        prune = str(data.get("pruning_month", 6))
+        if prune not in MONTHS:
+            prune = "1" # Fallback: Januari
+
         return {
-            "water": data.get("watering_interval", 7),
-            "feed": data.get("feeding_interval", 30),
-            "prune": str(data.get("pruning_month", 6)),
+            "water": water,
+            "feed": feed,
+            "prune": prune,
         }
 
     async def async_step_remove_plant(self, user_input=None):

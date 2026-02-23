@@ -3,9 +3,12 @@ import asyncio
 import logging
 from datetime import timedelta, datetime, date
 import random
+import json
+import voluptuous as vol
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, ServiceCall
+import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.exceptions import ConfigEntryNotReady
@@ -44,6 +47,81 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     
     entry.async_on_unload(entry.add_update_listener(async_reload_entry))
+
+    # Registreer de service om planten toe te voegen (alleen als hij nog niet bestaat)
+    if not hass.services.has_service(DOMAIN, "add_plant"):
+        async def async_handle_add_plant(call: ServiceCall):
+            """Handle the service call to add a plant."""
+            zone_name = call.data.get("zone_name")
+            plant_name = call.data.get("plant_name")
+            use_ai = call.data.get("use_ai", False)
+            
+            # Zoek de juiste config entry op basis van de zone naam
+            entry_to_update = None
+            for ent in hass.config_entries.async_entries(DOMAIN):
+                if ent.data.get(CONF_ZONE_NAME) == zone_name:
+                    entry_to_update = ent
+                    break
+            
+            if not entry_to_update:
+                _LOGGER.error(f"Geen Flora Planner zone gevonden met naam: {zone_name}")
+                return
+
+            # Standaard waarden
+            plant_data = {
+                "plant_name": plant_name,
+                "anchor_date": date.today().isoformat(),
+                "watering_interval": call.data.get("watering_interval", 7),
+                "feeding_interval": call.data.get("feeding_interval", 30),
+                "pruning_month": str(call.data.get("pruning_month", 1)),
+            }
+
+            # Als AI aanstaat, probeer gegevens op te halen
+            if use_ai:
+                api_key = entry_to_update.data.get(CONF_GEMINI_API_KEY)
+                if api_key:
+                    try:
+                        session = async_get_clientsession(hass)
+                        prompt = f"Voor de plant '{plant_name}', geef JSON met 'watering_interval' (dagen), 'feeding_interval' (dagen), 'pruning_month' (1-12)."
+                        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+                        payload = {"contents": [{"parts": [{"text": prompt}]}]}
+                        
+                        async with session.post(url, json=payload) as response:
+                            if response.status == 200:
+                                result = await response.json()
+                                text = result["candidates"][0]["content"]["parts"][0]["text"]
+                                clean_text = text.strip().replace("```json", "").replace("```", "")
+                                ai_data = json.loads(clean_text)
+                                
+                                # --- Sanity Check ---
+                                # Water: Tussen 1 en 60 dagen
+                                ai_water = ai_data.get("watering_interval")
+                                if isinstance(ai_water, int) and 1 <= ai_water <= 60:
+                                    plant_data["watering_interval"] = ai_water
+
+                                # Voeding: Tussen 1 en 365 dagen
+                                ai_feed = ai_data.get("feeding_interval")
+                                if isinstance(ai_feed, int) and 1 <= ai_feed <= 365:
+                                    plant_data["feeding_interval"] = ai_feed
+
+                                # Snoeien: 1 t/m 12
+                                ai_prune = str(ai_data.get("pruning_month"))
+                                if ai_prune in ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"]:
+                                    plant_data["pruning_month"] = ai_prune
+
+                    except Exception as e:
+                        _LOGGER.warning(f"AI service call mislukt voor {plant_name}: {e}")
+
+            # Update de configuratie
+            current_plants = list(entry_to_update.options.get(CONF_PLANTS, []))
+            current_plants.append(plant_data)
+            
+            hass.config_entries.async_update_entry(
+                entry_to_update, 
+                options={**entry_to_update.options, CONF_PLANTS: current_plants}
+            )
+
+        hass.services.async_register(DOMAIN, "add_plant", async_handle_add_plant)
 
     return True
 

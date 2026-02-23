@@ -1,0 +1,30 @@
+add_plant:
+  name: Plant toevoegen
+  description: Voegt een nieuwe plant toe aan een specifieke zone.
+  fields:
+    zone_name:
+      name: Zone naam
+      description: De naam van de zone waar de plant moet komen (bijv. Achtertuin).
+      required: true
+      selector:
+        text:
+    plant_name:
+      name: Plant naam
+      description: De naam van de plant.
+      required: true
+      selector:
+        text:
+    use_ai:
+      name: Gebruik AI
+      description: Laat Gemini automatisch de intervallen bepalen.
+      default: false
+      selector:
+        boolean:
+    watering_interval:
+      name: Water interval (dagen)
+      description: Standaardwaarde als AI uit staat of geen geldig antwoord geeft.
+      default: 7
+      selector:
+        number:
+          min: 1
+          max: 365
