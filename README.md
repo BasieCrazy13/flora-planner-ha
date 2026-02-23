@@ -1,8 +1,8 @@
 # 🌱 Flora Planner AI
 
-[!HACS Custom](https://github.com/hacs/integration)
-[!Home Assistant](https://www.home-assistant.io/)
-[!License](LICENSE)
+!HACS Custom
+!Home Assistant
+!License
 
 **Flora Planner AI** is een slimme Home Assistant integratie die je helpt je tuin te beheren. Het combineert lokale weersgegevens, bodemsensoren en **Google Gemini AI** om dynamische verzorgingsschema's en leuke wekelijkse verhalen te genereren.
 
@@ -87,20 +87,26 @@ content: >
 
 ## 🎨 Dashboard Kaart voor Planten Toevoegen
 
-Wil je snel planten toevoegen vanaf je dashboard?
+Wil je snel planten toevoegen vanaf je dashboard? Omdat Home Assistant geen standaard invulformulier heeft, moet je hiervoor een aantal **Helpers** aanmaken.
 
-1.  **Maak eerst de helpers aan:**
-    *   Ga naar **Instellingen** -> **Apparaten & Diensten** -> **Helpers**.
-    *   Maak een **Tekst** helper aan met naam `Nieuwe Plant Naam` (entity id: `input_text.nieuwe_plant_naam`).
-    *   Maak een **Tekst** helper aan met naam `Flora Zone Naam` (entity id: `input_text.flora_zone_naam`).
-    *   Maak een **Schakelaar** helper aan met naam `Gebruik AI voor Plant` (entity id: `input_boolean.gebruik_ai_voor_plant`).
-    *   *(Optioneel voor handmatig)* Maak een **Nummer** helper aan: `Water Interval` (entity id: `input_number.water_interval`, min 1, max 60).
-    *   *(Optioneel voor handmatig)* Maak een **Nummer** helper aan: `Min Vochtigheid` (entity id: `input_number.min_vochtigheid`, min 0, max 100).
-    *   *(Optioneel voor handmatig)* Maak een **Nummer** helper aan: `Zaaimaand` (entity id: `input_number.zaaimaand`, min 0, max 12).
-    *   *(Optioneel voor handmatig)* Maak een **Nummer** helper aan: `Oogstmaand` (entity id: `input_number.oogstmaand`, min 0, max 12).
+1.  **Maak deze 10 Helpers aan:**
+    Ga naar **Instellingen** -> **Apparaten & Diensten** -> **Helpers** en maak de volgende items aan:
 
-2.  **Maak de Scripts aan (Instellingen -> Automatiseringen & Scenes -> Scripts):**
-    *   Ga naar **Instellingen** -> **Automatiseringen & Scenes** -> **Scripts**.
+    | Type | Naam | Entity ID (automatisch) | Instellingen |
+    | :--- | :--- | :--- | :--- |
+    | **Tekst** | Nieuwe Plant Naam | `input_text.nieuwe_plant_naam` | - |
+    | **Tekst** | Flora Zone Naam | `input_text.flora_zone_naam` | - |
+    | **Nummer** | Water Interval | `input_number.water_interval` | Min: 1, Max: 60 |
+    | **Nummer** | Min Vochtigheid | `input_number.min_vochtigheid` | Min: 0, Max: 100 |
+    | **Nummer** | Voeding Interval | `input_number.voeding_interval` | Min: 1, Max: 365 |
+    | **Nummer** | Startmaand Voeding | `input_number.startmaand_voeding` | Min: 1, Max: 12 |
+    | **Nummer** | Eindmaand Voeding | `input_number.eindmaand_voeding` | Min: 1, Max: 12 |
+    | **Nummer** | Zaaimaand | `input_number.zaaimaand` | Min: 0, Max: 12 |
+    | **Nummer** | Oogstmaand | `input_number.oogstmaand` | Min: 0, Max: 12 |
+    | **Schakelaar** | Alleen bij Droogte | `input_boolean.alleen_bij_droogte` | - |
+
+2.  **Maak de Scripts aan:**
+    Ga naar **Instellingen** -> **Automatiseringen & Scenes** -> **Scripts** en maak twee scripts aan (in YAML modus):
     
     **Script 1: Flora AI Advies (Entity ID: `script.flora_ai_advies`)**
 ```yaml
@@ -146,9 +152,16 @@ sequence:
       entity_id: input_number.oogstmaand
     data:
       value: "{{ ai_advies.harvesting_month | int(default=0) }}"
-  - service: input_boolean.turn_{{ 'on' if ai_advies.drought_tolerant else 'off' }}
-    target:
-      entity_id: input_boolean.alleen_bij_droogte
+  - choose:
+      - conditions: "{{ ai_advies.drought_tolerant }}"
+        sequence:
+          - service: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.alleen_bij_droogte
+    default:
+      - service: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.alleen_bij_droogte
   - service: persistent_notification.create
     data:
       title: "Advies voor {{ states('input_text.nieuwe_plant_naam') }}"
@@ -157,7 +170,7 @@ mode: single
 icon: mdi:robot
 ```
 
-    **Script 2: Flora Plant Toevoegen (Sla op als `flora_plant_toevoegen`)**
+    **Script 2: Flora Plant Toevoegen (Entity ID: `script.flora_plant_toevoegen`)**
 ```yaml
 alias: Flora Plant Toevoegen
 sequence:
