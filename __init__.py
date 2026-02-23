@@ -19,6 +19,8 @@ from .const import (
     CONF_PLANTS,
     CONF_SOIL_MOISTURE_ENTITY,
     SOIL_MOISTURE_THRESHOLD,
+    PRECIP_THRESHOLD,
+    TEMP_THRESHOLD,
     CONF_GEMINI_API_KEY,
     ATTR_WEEKLY_STORY,
 )
@@ -134,7 +136,7 @@ class FloraPlannerCoordinator(DataUpdateCoordinator):
                     is_due = (days_since_anchor % dynamic_interval) == 0 and days_since_anchor >= 0
 
                     # --- ONZE REGEN FIX ---
-                    if precip is not None and precip > 5: # 5mm drempelwaarde
+                    if precip is not None and precip > PRECIP_THRESHOLD:
                         is_due = False # De natuur heeft gesproeid!
                         
                         # Reset de datum naar vandaag zodat hij morgen weer op dag 1 begint
@@ -170,6 +172,7 @@ class FloraPlannerCoordinator(DataUpdateCoordinator):
         """Calculate all tasks for the next 7 days."""
         tasks = set()
         today = date.today()
+        language = self.hass.config.language
         
         for i in range(7):
             current_date = today + timedelta(days=i)
@@ -183,28 +186,48 @@ class FloraPlannerCoordinator(DataUpdateCoordinator):
                     continue
 
                 if days_since_anchor % plant["watering_interval"] == 0:
-                    tasks.add(f"geef {plant_name} water")
+                    if language == "nl":
+                        tasks.add(f"geef {plant_name} water")
+                    else:
+                        tasks.add(f"water {plant_name}")
                 
                 if days_since_anchor % plant["feeding_interval"] == 0:
-                    tasks.add(f"geef {plant_name} voeding")
+                    if language == "nl":
+                        tasks.add(f"geef {plant_name} voeding")
+                    else:
+                        tasks.add(f"feed {plant_name}")
 
                 prune_month = int(plant["pruning_month"])
                 if current_date.month == prune_month and current_date.day == 1:
-                    tasks.add(f"snoei {plant_name}")
+                    if language == "nl":
+                        tasks.add(f"snoei {plant_name}")
+                    else:
+                        tasks.add(f"prune {plant_name}")
         
         return list(tasks)
 
     async def _generate_story(self, tasks: list[str]) -> str:
         """Generate a weekly story using Gemini."""
+        language = self.hass.config.language
+
         if not tasks:
-            return "Het is een rustige week in de tuin. Geniet van de stilte!"
+            if language == "nl":
+                return "Het is een rustige week in de tuin. Geniet van de stilte!"
+            return "It is a quiet week in the garden. Enjoy the silence!"
 
         task_list = ", ".join(tasks)
-        prompt = (
-            f"Schrijf een heel kort, leuk en motiverend tuinverhaal van 2 zinnen in het Nederlands "
-            f"voor de komende week. De taken zijn: {task_list}. Begin de eerste zin met iets als "
-            f"'Tijd om de handen uit de mouwen te steken!' of 'Deze week komt de tuin tot leven!'."
-        )
+        if language == "nl":
+            prompt = (
+                f"Schrijf een heel kort, leuk en motiverend tuinverhaal van 2 zinnen in het Nederlands "
+                f"voor de komende week. De taken zijn: {task_list}. Begin de eerste zin met iets als "
+                f"'Tijd om de handen uit de mouwen te steken!' of 'Deze week komt de tuin tot leven!'."
+            )
+        else:
+            prompt = (
+                f"Write a very short, fun, and motivating garden story of 2 sentences in English "
+                f"for the coming week. The tasks are: {task_list}. Start the first sentence with something like "
+                f"'Time to roll up your sleeves!' or 'The garden is coming to life this week!'."
+            )
         try:
             response = await self.hass.async_to_executor(
                 self.gemini_model.generate_content, prompt
@@ -212,4 +235,6 @@ class FloraPlannerCoordinator(DataUpdateCoordinator):
             return response.text.strip().replace('\n', ' ')
         except Exception as e:
             _LOGGER.warning(f"Could not generate weekly story with Gemini: {e}")
-            return "Deze week staan er klusjes op de planning! Kijk op de kalender wat er moet gebeuren."
+            if language == "nl":
+                return "Deze week staan er klusjes op de planning! Kijk op de kalender wat er moet gebeuren."
+            return "There are chores scheduled for this week! Check the calendar to see what needs to be done."

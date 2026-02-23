@@ -1,4 +1,5 @@
 """Sensor platform for Flora Planner."""
+from typing import Any
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -39,5 +40,13 @@ class WeeklyStorySensor(CoordinatorEntity, SensorEntity):
     def native_value(self) -> str:
         """Return the state of the sensor."""
         if self.coordinator.data:
-            return self.coordinator.data.get(ATTR_WEEKLY_STORY, "Geen verhaal beschikbaar.")
+            story = self.coordinator.data.get(ATTR_WEEKLY_STORY)
+            return "Beschikbaar" if story else "Geen verhaal"
         return "Wachten op data..."
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return the state attributes."""
+        return {
+            "full_story": self.coordinator.data.get(ATTR_WEEKLY_STORY, "Nog geen verhaal gegenereerd.")
+        }

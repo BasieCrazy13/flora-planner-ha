@@ -61,7 +61,8 @@
       }
     },
     "error": {
-      "ai_failure": "Kon geen suggesties ophalen van de AI. Probeer het opnieuw of vul de gegevens handmatig in."
+      "ai_failure": "Kon geen suggesties ophalen van de AI. Probeer het opnieuw of vul de gegevens handmatig in.",
+      "name_exists": "Een plant met deze naam bestaat al in deze zone. Kies een unieke naam (bijv. 'Munt 2')."
     }
   },
   "pruning_months": {

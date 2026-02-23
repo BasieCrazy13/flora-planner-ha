@@ -22,7 +22,7 @@ PRECIP_THRESHOLD: Final = 5  # mm
 SOIL_MOISTURE_THRESHOLD: Final = 20 # Percent
 
 # Platforms
-PLATFORMS: Final = ["calendar", "binary_sensor", "sensor"]
+PLATFORMS: Final = ["sensor"]
 
 # Events
 EVENT_WATER = "water"

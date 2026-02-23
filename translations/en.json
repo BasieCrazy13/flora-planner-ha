@@ -61,7 +61,8 @@
       }
     },
     "error": {
-      "ai_failure": "Failed to get suggestions from the AI. Please try again or enter manually."
+      "ai_failure": "Failed to get suggestions from the AI. Please try again or enter manually.",
+      "name_exists": "A plant with this name already exists in this zone. Please choose a unique name."
     }
   },
   "pruning_months": {

@@ -1,6 +1,7 @@
 """Config flow for Flora Planner."""
 import logging
 import random
+import json
 from datetime import date
 from typing import Any, Dict
 
@@ -94,16 +95,22 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
     async def async_step_add_plant_start(self, user_input=None):
         """Start of the add plant flow: ask for name and if AI should be used."""
+        errors = {}
         if user_input is not None:
-            self.plant_data = user_input
-            return await self.async_step_add_plant_details()
+            name = user_input[CONF_PLANT_NAME]
+            if any(p[CONF_PLANT_NAME] == name for p in self.current_plants):
+                errors["base"] = "name_exists"
+            else:
+                self.plant_data = user_input
+                return await self.async_step_add_plant_details()
 
         return self.async_show_form(
             step_id="add_plant_start",
             data_schema=vol.Schema({
                 vol.Required(CONF_PLANT_NAME): str,
                 vol.Required(CONF_USE_AI, default=False): BooleanSelector(),
-            })
+            }),
+            errors=errors
         )
 
     async def async_step_add_plant_details(self, user_input=None):
@@ -163,7 +170,6 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         response = await self.hass.async_to_executor(_generate)
         
         # Basic parsing, a real implementation needs more robust error handling
-        import json
         text = response.text.strip().replace("```json", "").replace("```", "")
         data = json.loads(text)
         
