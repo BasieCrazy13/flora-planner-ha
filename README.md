@@ -255,4 +255,6 @@ cards:
         name: Oogstmaand (0=nvt)
       - entity: input_boolean.alleen_bij_droogte
         name: Alleen water bij hitte/droogte?
+      - entity: input_boolean.automatisch_wateren
+        name: Aangesloten op automatische sproeier?
 ```
