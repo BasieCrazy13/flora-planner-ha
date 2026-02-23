@@ -1,8 +1,8 @@
 # 🌱 Flora Planner AI
 
-[![HACS Custom](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
-[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2024.1%2B-blue.svg)](https://www.home-assistant.io/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[!HACS Custom](https://github.com/hacs/integration)
+[!Home Assistant](https://www.home-assistant.io/)
+[!License](LICENSE)
 
 **Flora Planner AI** is een slimme Home Assistant integratie die je helpt je tuin te beheren. Het combineert lokale weersgegevens, bodemsensoren en **Google Gemini AI** om dynamische verzorgingsschema's en leuke wekelijkse verhalen te genereren.
 
@@ -84,4 +84,36 @@ content: >
   {% for plant, nodig in status.items() %}
   - **{{ plant }}:** {{ 'Ja 🚰' if nodig else 'Nee ✅' }}
   {% endfor %}
+```
+
+## 🎨 Dashboard Kaart voor Planten Toevoegen
+
+Wil je snel planten toevoegen vanaf je dashboard?
+
+1.  **Maak eerst twee helpers aan:**
+    *   Ga naar **Instellingen** -> **Apparaten & Diensten** -> **Helpers**.
+    *   Maak een **Tekst** helper aan met naam `Nieuwe Plant Naam` (entity id: `input_text.nieuwe_plant_naam`).
+    *   Maak een **Schakelaar** helper aan met naam `Gebruik AI voor Plant` (entity id: `input_boolean.gebruik_ai_voor_plant`).
+
+2.  **Gebruik deze YAML code voor je dashboard kaart:**
+
+```yaml
+type: vertical-stack
+cards:
+  - type: entities
+    entities:
+      - entity: input_text.nieuwe_plant_naam
+        name: Naam van de plant
+      - entity: input_boolean.gebruik_ai_voor_plant
+        name: Gebruik AI voor advies
+  - type: button
+    name: Plant Toevoegen
+    icon: mdi:plus
+    tap_action:
+      action: call-service
+      service: flora_planner.add_plant
+      data:
+        zone_name: "Achtertuin"  # <-- Pas dit aan naar jouw zone naam!
+        plant_name: "{{ states('input_text.nieuwe_plant_naam') }}"
+        use_ai: "{{ states('input_boolean.gebruik_ai_voor_plant') }}"
 ```
