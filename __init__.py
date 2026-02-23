@@ -40,15 +40,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.error("Gemini API key is not configured.")
         return False
 
-    coordinator = FloraPlannerCoordinator(hass, entry)
-    await coordinator.async_config_entry_first_refresh()
-
-    hass.data[DOMAIN][entry.entry_id] = coordinator
-    
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-    
-    entry.async_on_unload(entry.add_update_listener(async_reload_entry))
-
     # Registreer de service om planten toe te voegen (alleen als hij nog niet bestaat)
     if not hass.services.has_service(DOMAIN, "add_plant"):
         async def async_handle_add_plant(call: ServiceCall):
@@ -146,6 +137,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             persistent_notification.async_create(hass, f"Plant '{plant_name}' succesvol toegevoegd aan {zone_name or 'je zone'}!", "Flora Planner")
 
         hass.services.async_register(DOMAIN, "add_plant", async_handle_add_plant)
+
+    coordinator = FloraPlannerCoordinator(hass, entry)
+    await coordinator.async_config_entry_first_refresh()
+
+    hass.data[DOMAIN][entry.entry_id] = coordinator
+    
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    
+    entry.async_on_unload(entry.add_update_listener(async_reload_entry))
 
     return True
 
