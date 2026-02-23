@@ -40,3 +40,9 @@ add_plant:
       default: 0
       selector:
         number: {min: 0, max: 12}
+    min_moisture:
+      name: Minimale Vochtigheid
+      description: Percentage bodemvocht waarbij water gegeven moet worden (0-100).
+      default: 20
+      selector:
+        number: {min: 0, max: 100}

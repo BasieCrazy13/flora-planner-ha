@@ -7,6 +7,10 @@ DOMAIN: Final = "flora_planner"
 CONF_GEMINI_API_KEY: Final = "gemini_api_key"
 CONF_ZONE_NAME: Final = "zone_name"
 CONF_WEATHER_ENTITY: Final = "weather_entity"
+CONF_SPRINKLER_ENTITY: Final = "sprinkler_entity"
+CONF_CYCLE_MINUTES: Final = "cycle_minutes"
+CONF_SOAK_MINUTES: Final = "soak_minutes"
+CONF_MAX_CYCLES: Final = "max_cycles"
 CONF_PLANTS: Final = "plants"
 CONF_PLANT_NAME: Final = "plant_name"
 CONF_USE_AI: Final = "use_ai"
@@ -17,6 +21,7 @@ CONF_SOW_MONTH: Final = "sowing_month"
 CONF_HARVEST_MONTH: Final = "harvesting_month"
 CONF_ANCHOR_DATE: Final = "anchor_date"
 CONF_SOIL_MOISTURE_ENTITY: Final = "soil_moisture_entity"
+CONF_MIN_MOISTURE: Final = "min_moisture"
 
 # Weather & Soil Logic
 TEMP_THRESHOLD: Final = 28  # Celsius
@@ -24,7 +29,7 @@ PRECIP_THRESHOLD: Final = 5  # mm
 SOIL_MOISTURE_THRESHOLD: Final = 20 # Percent
 
 # Platforms
-PLATFORMS: Final = ["sensor", "binary_sensor", "calendar"]
+PLATFORMS: Final = ["sensor", "binary_sensor", "calendar", "switch"]
 
 # Events
 EVENT_WATER = "water"

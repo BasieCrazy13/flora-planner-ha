@@ -86,6 +86,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 "pruning_month": str(call.data.get("pruning_month", 1)),
                 "sowing_month": str(call.data.get("sowing_month", 0)),
                 "harvesting_month": str(call.data.get("harvesting_month", 0)),
+                "min_moisture": int(call.data.get("min_moisture", 20)),
             }
 
             # Als AI aanstaat, probeer gegevens op te halen

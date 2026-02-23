@@ -56,15 +56,14 @@ De integratie berekent elke dag of een plant water nodig heeft op basis van drie
 4.  **Stap 1:** Voer je Google Gemini API Key in (deze is gratis voor persoonlijk gebruik).
 5.  **Stap 2:** Geef je zone een naam (bijv. "Achtertuin") en selecteer je lokale weer-entiteit (bijv. `weather.forecast_home`).
 
-## 🌱 Planten Beheren
+## 🌱 Planten Beheren (De makkelijke manier)
 
-Je kunt planten eenvoudig toevoegen via de configuratie-knop:
+De standaard manier om planten te beheren is via het menu. **Hier heb je geen helpers of codes voor nodig!**
 
-1.  Ga naar de integratie pagina.
-2.  Klik op **Configureren** bij Flora Planner.
-3.  Kies **Voeg een nieuwe plant toe**.
-4.  Vul de naam in en vink **AI gebruiken** aan.
-5.  De AI doet een voorstel voor water, voeding en snoeien. Pas dit aan indien nodig en sla op.
+1.  Ga naar **Instellingen** -> **Apparaten & Diensten**.
+2.  Klik op **Configureren** bij de **Flora Planner** integratie.
+3.  Kies **Voeg een nieuwe plant toe** of **Verwijder een plant**.
+4.  Volg de stappen op het scherm (AI doet automatisch een voorstel).
 
 ## 📊 Sensoren
 
@@ -96,6 +95,9 @@ Wil je snel planten toevoegen vanaf je dashboard?
     *   Maak een **Tekst** helper aan met naam `Flora Zone Naam` (entity id: `input_text.flora_zone_naam`).
     *   Maak een **Schakelaar** helper aan met naam `Gebruik AI voor Plant` (entity id: `input_boolean.gebruik_ai_voor_plant`).
     *   *(Optioneel voor handmatig)* Maak een **Nummer** helper aan: `Water Interval` (entity id: `input_number.water_interval`, min 1, max 60).
+    *   *(Optioneel voor handmatig)* Maak een **Nummer** helper aan: `Min Vochtigheid` (entity id: `input_number.min_vochtigheid`, min 0, max 100).
+    *   *(Optioneel voor handmatig)* Maak een **Nummer** helper aan: `Zaaimaand` (entity id: `input_number.zaaimaand`, min 0, max 12).
+    *   *(Optioneel voor handmatig)* Maak een **Nummer** helper aan: `Oogstmaand` (entity id: `input_number.oogstmaand`, min 0, max 12).
 
 2.  **Maak een Script aan:**
     *   Ga naar **Instellingen** -> **Automatiseringen & Scenes** -> **Scripts**.
@@ -111,8 +113,11 @@ sequence:
       zone_name: "{{ states('input_text.flora_zone_naam') }}"
       plant_name: "{{ states('input_text.nieuwe_plant_naam') }}"
       use_ai: "{{ states('input_boolean.gebruik_ai_voor_plant') }}"
-      # Als AI uit staat, gebruiken we deze waarde:
-      watering_interval: "{{ states('input_number.water_interval') | int }}"
+      # We gebruiken nu altijd de waarden uit de helpers (die je zelf of via AI hebt ingevuld):
+      watering_interval: "{{ states('input_number.water_interval') | int(default=7) }}"
+      sowing_month: "{{ states('input_number.zaaimaand') | int(default=0) }}"
+      harvesting_month: "{{ states('input_number.oogstmaand') | int(default=0) }}"
+      min_moisture: "{{ states('input_number.min_vochtigheid') | int(default=20) }}"
   - service: input_text.set_value
     target:
       entity_id: input_text.nieuwe_plant_naam

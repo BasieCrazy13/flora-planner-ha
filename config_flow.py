@@ -21,8 +21,9 @@ from .const import (
     DOMAIN, CONF_ZONE_NAME, CONF_WEATHER_ENTITY, CONF_PLANTS,
     CONF_PLANT_NAME, CONF_WATER_INTERVAL, CONF_FEED_INTERVAL,
     CONF_PRUNE_MONTH, CONF_ANCHOR_DATE, CONF_USE_AI,
-    CONF_SOIL_MOISTURE_ENTITY, CONF_GEMINI_API_KEY,
-    CONF_SOW_MONTH, CONF_HARVEST_MONTH
+    CONF_SOIL_MOISTURE_ENTITY, CONF_GEMINI_API_KEY, CONF_MIN_MOISTURE,
+    CONF_SOW_MONTH, CONF_HARVEST_MONTH, CONF_SPRINKLER_ENTITY,
+    CONF_CYCLE_MINUTES, CONF_SOAK_MINUTES, CONF_MAX_CYCLES
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -78,6 +79,10 @@ class FloraPlannerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             data_schema=vol.Schema({
                 vol.Required(CONF_ZONE_NAME): str,
                 vol.Required(CONF_WEATHER_ENTITY): EntitySelector(EntitySelectorConfig(domain="weather")),
+                vol.Optional(CONF_SPRINKLER_ENTITY): EntitySelector(EntitySelectorConfig(domain=["switch", "valve", "input_boolean"])),
+                vol.Required(CONF_CYCLE_MINUTES, default=5): vol.All(vol.Coerce(int), vol.Range(min=1, max=60)),
+                vol.Required(CONF_SOAK_MINUTES, default=10): vol.All(vol.Coerce(int), vol.Range(min=0, max=60)),
+                vol.Required(CONF_MAX_CYCLES, default=5): vol.All(vol.Coerce(int), vol.Range(min=1, max=20)),
             })
         )
 
@@ -155,6 +160,9 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             vol.Optional(CONF_SOIL_MOISTURE_ENTITY): EntitySelector(
                 EntitySelectorConfig(domain="sensor", device_class="moisture")
             ),
+            vol.Required(CONF_MIN_MOISTURE, default=ai_suggestions.get("min_moisture", 20)): vol.All(
+                vol.Coerce(int), vol.Range(min=0, max=100)
+            ),
         })
 
         return self.async_show_form(
@@ -167,7 +175,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
     async def _get_ai_suggestions(self, plant_name: str) -> Dict[str, Any]:
         """Get plant care suggestions from Gemini."""
         prompt = (
-            f"Voor de plant '{plant_name}', geef een JSON-object met 'watering_interval' (dagen), "
+            f"Voor de plant '{plant_name}', geef een JSON-object met 'watering_interval' (dagen), 'min_moisture' (percentage 0-100, standaard 20), "
             f"'feeding_interval' (dagen), 'pruning_month' (1-12), 'sowing_month' (1-12, 0=nvt), 'harvesting_month' (1-12, 0=nvt). "
             f"Geef alleen JSON."
         )
@@ -216,12 +224,17 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         if harvest not in MONTHS and harvest != "0":
             harvest = "0"
 
+        min_moist = data.get("min_moisture", 20)
+        if not isinstance(min_moist, int) or min_moist < 0 or min_moist > 100:
+            min_moist = 20
+
         return {
             "water": water,
             "feed": feed,
             "prune": prune,
             "sow": sow,
             "harvest": harvest,
+            "min_moisture": min_moist,
         }
 
     async def async_step_remove_plant(self, user_input=None):

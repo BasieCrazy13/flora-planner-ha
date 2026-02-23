@@ -13,7 +13,11 @@
         "description": "Each zone has its own weather entity and set of plants.",
         "data": {
           "zone_name": "Zone Name (e.g., Backyard)",
-          "weather_entity": "Weather Entity"
+          "weather_entity": "Weather Entity",
+          "sprinkler_entity": "Sprinkler/Valve Entity (Optional)",
+          "cycle_minutes": "Watering duration per cycle (minutes)",
+          "soak_minutes": "Soak duration between cycles (minutes)",
+          "max_cycles": "Maximum number of cycles"
         }
       }
     },
@@ -50,7 +54,8 @@
           "watering_interval": "Water Interval (days)",
           "feeding_interval": "Feed Interval (days)",
           "pruning_month": "Pruning Month",
-          "soil_moisture_entity": "Soil Moisture Sensor (Optional)"
+          "soil_moisture_entity": "Soil Moisture Sensor (Optional)",
+          "min_moisture": "Minimum Soil Moisture (%)"
         }
       },
       "remove_plant": {

@@ -13,7 +13,11 @@
         "description": "Elke zone heeft zijn eigen weer-entiteit en planten.",
         "data": {
           "zone_name": "Naam van de zone (bijv. Achtertuin)",
-          "weather_entity": "Weer-entiteit"
+          "weather_entity": "Weer-entiteit",
+          "sprinkler_entity": "Sproeier/Kraan Entiteit (Optioneel)",
+          "cycle_minutes": "Sproeitijd per cyclus (minuten)",
+          "soak_minutes": "Wachttijd tussen cycli (minuten)",
+          "max_cycles": "Maximaal aantal cycli"
         }
       }
     },
@@ -52,7 +56,8 @@
           "pruning_month": "Snoeimaand",
           "soil_moisture_entity": "Bodemvochtigheidssensor (Optioneel)",
           "sowing_month": "Zaaimaand (Optioneel)",
-          "harvesting_month": "Oogstmaand (Optioneel)"
+          "harvesting_month": "Oogstmaand (Optioneel)",
+          "min_moisture": "Minimale bodemvochtigheid (%)"
         }
       },
       "remove_plant": {
