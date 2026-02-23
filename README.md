@@ -154,7 +154,7 @@ sequence:
     data:
       value: ""
 mode: single
-icon: mdi:flower-plus
+icon: mdi:flower
 ```
 
 3.  **Gebruik deze YAML code voor je dashboard kaart:**
@@ -168,8 +168,22 @@ cards:
         name: Zone (bijv. Achtertuin)
       - entity: input_text.nieuwe_plant_naam
         name: Naam van de plant
-      - entity: input_boolean.gebruik_ai_voor_plant
-        name: Gebruik AI voor advies
+  - type: horizontal-stack
+    cards:
+      - type: button
+        name: Vraag AI Advies
+        icon: mdi:robot
+        tap_action:
+          action: call-service
+          service: script.flora_ai_advies
+      - type: button
+        name: Plant Toevoegen
+        icon: mdi:plus
+        tap_action:
+          action: call-service
+          service: script.flora_plant_toevoegen
+  - type: entities
+    entities:
       - entity: input_number.water_interval
         name: Water Interval (dagen)
       - entity: input_number.min_vochtigheid
@@ -178,10 +192,4 @@ cards:
         name: Zaaimaand (0=nvt)
       - entity: input_number.oogstmaand
         name: Oogstmaand (0=nvt)
-  - type: button
-    name: Plant Toevoegen
-    icon: mdi:plus
-    tap_action:
-      action: call-service
-      service: script.flora_plant_toevoegen
 ```
