@@ -135,6 +135,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 prompt = (
                     f"Voor de plant '{plant_name}' (locatie: {zone_name}), geef een JSON-object met: "
                     f"'watering_interval' (dagen), 'drought_tolerant' (boolean, true als plant alleen water nodig heeft bij hitte/droogte), 'min_moisture' (0-100), 'feeding_interval' (dagen), "
+                    f"'water_start_month' (1-12), 'water_end_month' (1-12), 'feed_start_month' (1-12), 'feed_end_month' (1-12), "
                     f"'pruning_month' (1-12), 'sowing_month' (1-12, 0 als nvt), 'harvesting_month' (1-12, 0 als nvt), "
                     f"en 'advice' (een duidelijke uitleg in het Nederlands over: waterbehoefte en hoeveelheid, "
                     f"waarom deze vochtigheid, signalen van te veel/weinig water, en specifieke seizoens/snoei tips). "
@@ -156,6 +157,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     "watering_interval": 7, 
                     "min_moisture": 20, 
                     "drought_tolerant": False,
+                    "water_start_month": 1,
+                    "water_end_month": 12,
+                    "feed_start_month": 3,
+                    "feed_end_month": 10,
                     "feeding_interval": 30, 
                     "pruning_month": 1, 
                     "sowing_month": 0, 
@@ -210,6 +215,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 "anchor_date": date.today().isoformat(),
                 "watering_interval": call.data.get("watering_interval", 7),
                 "feeding_interval": call.data.get("feeding_interval", 30),
+                "water_start_month": int(call.data.get("water_start_month", 1)),
+                "water_end_month": int(call.data.get("water_end_month", 12)),
+                "feed_start_month": int(call.data.get("feed_start_month", 3)),
+                "feed_end_month": int(call.data.get("feed_end_month", 10)),
                 "pruning_month": str(call.data.get("pruning_month", 1)),
                 "sowing_month": str(call.data.get("sowing_month", 0)),
                 "harvesting_month": str(call.data.get("harvesting_month", 0)),
@@ -404,6 +413,12 @@ class FloraPlannerCoordinator(DataUpdateCoordinator):
         today = date.today()
         language = self.hass.config.language
         
+        def is_in_season(month, start, end):
+            if start <= end:
+                return start <= month <= end
+            else: # Loopt door over jaarwisseling (bijv. Nov-Feb)
+                return month >= start or month <= end
+
         for i in range(7):
             current_date = today + timedelta(days=i)
             
@@ -415,13 +430,19 @@ class FloraPlannerCoordinator(DataUpdateCoordinator):
                 if days_since_anchor < 0:
                     continue
 
-                if days_since_anchor % plant["watering_interval"] == 0:
+                # Check Water Seizoen
+                water_start = int(plant.get(CONF_WATER_START_MONTH, 1))
+                water_end = int(plant.get(CONF_WATER_END_MONTH, 12))
+                if is_in_season(current_date.month, water_start, water_end) and days_since_anchor % plant["watering_interval"] == 0:
                     if language == "nl":
                         tasks.add(f"geef {plant_name} water")
                     else:
                         tasks.add(f"water {plant_name}")
                 
-                if days_since_anchor % plant["feeding_interval"] == 0:
+                # Check Voeding Seizoen
+                feed_start = int(plant.get(CONF_FEED_START_MONTH, 3))
+                feed_end = int(plant.get(CONF_FEED_END_MONTH, 10))
+                if is_in_season(current_date.month, feed_start, feed_end) and days_since_anchor % plant["feeding_interval"] == 0:
                     if language == "nl":
                         tasks.add(f"geef {plant_name} voeding")
                     else:

@@ -123,6 +123,21 @@ sequence:
       value: "{{ ai_advies.min_moisture | int(default=20) }}"
   - service: input_number.set_value
     target:
+      entity_id: input_number.voeding_interval
+    data:
+      value: "{{ ai_advies.feeding_interval | int(default=30) }}"
+  - service: input_number.set_value
+    target:
+      entity_id: input_number.startmaand_voeding
+    data:
+      value: "{{ ai_advies.feed_start_month | int(default=3) }}"
+  - service: input_number.set_value
+    target:
+      entity_id: input_number.eindmaand_voeding
+    data:
+      value: "{{ ai_advies.feed_end_month | int(default=10) }}"
+  - service: input_number.set_value
+    target:
       entity_id: input_number.zaaimaand
     data:
       value: "{{ ai_advies.sowing_month | int(default=0) }}"
@@ -156,6 +171,9 @@ sequence:
       harvesting_month: "{{ states('input_number.oogstmaand') | int(default=0) }}"
       min_moisture: "{{ states('input_number.min_vochtigheid') | int(default=20) }}"
       drought_only: "{{ states('input_boolean.alleen_bij_droogte') }}"
+      feeding_interval: "{{ states('input_number.voeding_interval') | int(default=30) }}"
+      feed_start_month: "{{ states('input_number.startmaand_voeding') | int(default=3) }}"
+      feed_end_month: "{{ states('input_number.eindmaand_voeding') | int(default=10) }}"
   - service: input_text.set_value
     target:
       entity_id: input_text.nieuwe_plant_naam
@@ -196,6 +214,12 @@ cards:
         name: Water Interval (dagen)
       - entity: input_number.min_vochtigheid
         name: Min. Vochtigheid (%)
+      - entity: input_number.voeding_interval
+        name: Voeding Interval (dagen)
+      - entity: input_number.startmaand_voeding
+        name: Startmaand Voeding (1-12)
+      - entity: input_number.eindmaand_voeding
+        name: Eindmaand Voeding (1-12)
       - entity: input_number.zaaimaand
         name: Zaaimaand (0=nvt)
       - entity: input_number.oogstmaand

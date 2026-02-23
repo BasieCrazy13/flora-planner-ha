@@ -24,7 +24,8 @@ from .const import (
     CONF_SOIL_MOISTURE_ENTITY, CONF_GEMINI_API_KEY, CONF_MIN_MOISTURE,
     CONF_SOW_MONTH, CONF_HARVEST_MONTH, CONF_SPRINKLER_ENTITY,
     CONF_CYCLE_MINUTES, CONF_SOAK_MINUTES, CONF_MAX_CYCLES,
-    CONF_DROUGHT_ONLY
+    CONF_DROUGHT_ONLY, CONF_WATER_START_MONTH, CONF_WATER_END_MONTH,
+    CONF_FEED_START_MONTH, CONF_FEED_END_MONTH
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -149,7 +150,11 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         plant_schema = vol.Schema({
             vol.Required(CONF_WATER_INTERVAL, default=ai_suggestions.get("water", 7)): cv.positive_int,
             vol.Optional(CONF_DROUGHT_ONLY, default=ai_suggestions.get("drought_only", False)): BooleanSelector(),
+            vol.Required(CONF_WATER_START_MONTH, default=ai_suggestions.get("water_start", "1")): SelectSelector(SelectSelectorConfig(options=list(MONTHS.keys()), mode=SelectSelectorMode.DROPDOWN)),
+            vol.Required(CONF_WATER_END_MONTH, default=ai_suggestions.get("water_end", "12")): SelectSelector(SelectSelectorConfig(options=list(MONTHS.keys()), mode=SelectSelectorMode.DROPDOWN)),
             vol.Required(CONF_FEED_INTERVAL, default=ai_suggestions.get("feed", 30)): cv.positive_int,
+            vol.Required(CONF_FEED_START_MONTH, default=ai_suggestions.get("feed_start", "3")): SelectSelector(SelectSelectorConfig(options=list(MONTHS.keys()), mode=SelectSelectorMode.DROPDOWN)),
+            vol.Required(CONF_FEED_END_MONTH, default=ai_suggestions.get("feed_end", "10")): SelectSelector(SelectSelectorConfig(options=list(MONTHS.keys()), mode=SelectSelectorMode.DROPDOWN)),
             vol.Required(CONF_PRUNE_MONTH, default=ai_suggestions.get("prune", "6")): SelectSelector(
                 SelectSelectorConfig(options=list(MONTHS.keys()), mode=SelectSelectorMode.DROPDOWN, translation_key="pruning_months")
             ),
@@ -178,7 +183,8 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         """Get plant care suggestions from Gemini."""
         prompt = (
             f"Voor de plant '{plant_name}', geef een JSON-object met 'watering_interval' (dagen), 'drought_tolerant' (boolean), 'min_moisture' (percentage 0-100, standaard 20), "
-            f"'feeding_interval' (dagen), 'pruning_month' (1-12), 'sowing_month' (1-12, 0=nvt), 'harvesting_month' (1-12, 0=nvt). "
+            f"'feeding_interval' (dagen), 'water_start_month' (1-12), 'water_end_month' (1-12), 'feed_start_month' (1-12), 'feed_end_month' (1-12), "
+            f"'pruning_month' (1-12), 'sowing_month' (1-12, 0=nvt), 'harvesting_month' (1-12, 0=nvt). "
             f"Geef alleen JSON."
         )
         api_key = self.config_entry.data.get(CONF_GEMINI_API_KEY)
@@ -239,6 +245,11 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
         drought_only = data.get("drought_tolerant", False)
 
+        water_start = str(data.get("water_start_month", 1))
+        water_end = str(data.get("water_end_month", 12))
+        feed_start = str(data.get("feed_start_month", 3))
+        feed_end = str(data.get("feed_end_month", 10))
+
         return {
             "water": water,
             "feed": feed,
@@ -247,6 +258,10 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             "harvest": harvest,
             "min_moisture": min_moist,
             "drought_only": drought_only,
+            "water_start": water_start,
+            "water_end": water_end,
+            "feed_start": feed_start,
+            "feed_end": feed_end,
         }
 
     async def async_step_remove_plant(self, user_input=None):

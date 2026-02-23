@@ -52,6 +52,31 @@ add_plant:
       default: false
       selector:
         boolean:
+    water_start_month:
+      name: Startmaand Water
+      default: 1
+      selector:
+        number: {min: 1, max: 12}
+    water_end_month:
+      name: Eindmaand Water
+      default: 12
+      selector:
+        number: {min: 1, max: 12}
+    feed_start_month:
+      name: Startmaand Voeding
+      default: 3
+      selector:
+        number: {min: 1, max: 12}
+    feed_end_month:
+      name: Eindmaand Voeding
+      default: 10
+      selector:
+        number: {min: 1, max: 12}
+    feeding_interval:
+      name: Voedingsinterval (dagen)
+      default: 30
+      selector:
+        number: {min: 1, max: 365}
 
 get_ai_advice:
   name: Vraag AI Advies
