@@ -9,6 +9,8 @@ import voluptuous as vol
 
 from homeassistant import config_entries
 from homeassistant.core import callback
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import (
     SelectSelector, SelectSelectorConfig, SelectSelectorMode,
     EntitySelector, EntitySelectorConfig, BooleanSelector
@@ -26,24 +28,14 @@ _LOGGER = logging.getLogger(__name__)
 
 MONTHS = {str(i): f"{i}" for i in range(1, 13)}
 
-async def validate_api_key(api_key: str) -> bool:
+async def validate_api_key(hass: HomeAssistant, api_key: str) -> bool:
     """Validate the Gemini API key."""
+    session = async_get_clientsession(hass)
+    url = f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}"
     try:
-        import google.generativeai as genai
-        from google.api_core import exceptions as google_exceptions
-    except ImportError:
-        _LOGGER.error("Google Generative AI library not found.")
-        return False
-
-    try:
-        genai.configure(api_key=api_key)
-        # The model listing is a lightweight way to check auth
-        await genai.GenerativeModel.list_models()
-        return True
-    except (google_exceptions.PermissionDenied, google_exceptions.Unauthenticated):
-        return False
+        async with session.get(url) as response:
+            return response.status == 200
     except Exception:
-        # Catch other potential issues like network errors
         return False
 
 class FloraPlannerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -55,7 +47,7 @@ class FloraPlannerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
         if user_input is not None:
             # Re-validate here in case user changes it
-            if await self.hass.async_add_executor_job(validate_api_key, user_input[CONF_GEMINI_API_KEY]):
+            if await validate_api_key(self.hass, user_input[CONF_GEMINI_API_KEY]):
                 self.hass.data[DOMAIN] = {"api_key": user_input[CONF_GEMINI_API_KEY]}
                 return await self.async_step_zone()
             errors["base"] = "invalid_auth"
@@ -160,25 +152,32 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
     async def _get_ai_suggestions(self, plant_name: str) -> Dict[str, Any]:
         """Get plant care suggestions from Gemini."""
-        import google.generativeai as genai
-
         prompt = (
             f"Voor de plant '{plant_name}', geef een JSON-object met 'watering_interval' in dagen, "
             f"'feeding_interval' in dagen, en 'pruning_month' als een nummer (1-12). "
             f"Geef alleen de JSON terug."
         )
         api_key = self.config_entry.data.get(CONF_GEMINI_API_KEY)
+        session = async_get_clientsession(self.hass)
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
         
-        def _generate():
-            genai.configure(api_key=api_key)
-            model = genai.GenerativeModel('gemini-pro')
-            return model.generate_content(prompt)
-
-        response = await self.hass.async_to_executor(_generate)
+        payload = {
+            "contents": [{"parts": [{"text": prompt}]}]
+        }
         
-        # Basic parsing, a real implementation needs more robust error handling
-        text = response.text.strip().replace("```json", "").replace("```", "")
-        data = json.loads(text)
+        async with session.post(url, json=payload) as response:
+            if response.status != 200:
+                raise Exception(f"API Error: {response.status}")
+            result = await response.json()
+        
+        try:
+            # Extract text from Gemini response structure
+            text_response = result["candidates"][0]["content"]["parts"][0]["text"]
+            # Clean up markdown code blocks if present
+            clean_text = text_response.strip().replace("```json", "").replace("```", "")
+            data = json.loads(clean_text)
+        except (KeyError, IndexError, json.JSONDecodeError) as e:
+            raise Exception(f"Failed to parse AI response: {e}")
         
         return {
             "water": data.get("watering_interval", 7),

@@ -6,6 +6,7 @@ import random
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.exceptions import ConfigEntryNotReady
 
@@ -34,13 +35,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if not api_key:
         _LOGGER.error("Gemini API key is not configured.")
         return False
-
-    try:
-        import google.generativeai as genai
-        genai.configure(api_key=api_key)
-    except Exception as e:
-        _LOGGER.error(f"Failed to configure Gemini API: {e}")
-        raise ConfigEntryNotReady from e
 
     coordinator = FloraPlannerCoordinator(hass, entry)
     await coordinator.async_config_entry_first_refresh()
@@ -71,13 +65,6 @@ class FloraPlannerCoordinator(DataUpdateCoordinator):
         self.zone_name = self.config_entry.data[CONF_ZONE_NAME]
         self.weather_entity = self.config_entry.data[CONF_WEATHER_ENTITY]
         
-        try:
-            import google.generativeai as genai
-            self.gemini_model = genai.GenerativeModel('gemini-pro')
-        except ImportError:
-            self.gemini_model = None
-            _LOGGER.warning("Google Generative AI library not found. AI features will be disabled.")
-
         super().__init__(
             hass,
             _LOGGER,
@@ -215,9 +202,6 @@ class FloraPlannerCoordinator(DataUpdateCoordinator):
         """Generate a weekly story using Gemini."""
         language = self.hass.config.language
 
-        if not self.gemini_model:
-            return "AI niet beschikbaar." if language == "nl" else "AI not available."
-
         if not tasks:
             if language == "nl":
                 return "Het is een rustige week in de tuin. Geniet van de stilte!"
@@ -236,11 +220,21 @@ class FloraPlannerCoordinator(DataUpdateCoordinator):
                 f"for the coming week. The tasks are: {task_list}. Start the first sentence with something like "
                 f"'Time to roll up your sleeves!' or 'The garden is coming to life this week!'."
             )
+            
+        api_key = self.config_entry.data[CONF_GEMINI_API_KEY]
+        session = async_get_clientsession(self.hass)
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+        payload = {"contents": [{"parts": [{"text": prompt}]}]}
+
         try:
-            response = await self.hass.async_to_executor(
-                self.gemini_model.generate_content, prompt
-            )
-            return response.text.strip().replace('\n', ' ')
+            async with session.post(url, json=payload) as response:
+                if response.status == 200:
+                    result = await response.json()
+                    text = result["candidates"][0]["content"]["parts"][0]["text"]
+                    return text.strip().replace('\n', ' ')
+                else:
+                    _LOGGER.error(f"Gemini API error: {response.status}")
+                    raise Exception(f"API returned {response.status}")
         except Exception as e:
             _LOGGER.warning(f"Could not generate weekly story with Gemini: {e}")
             if language == "nl":
