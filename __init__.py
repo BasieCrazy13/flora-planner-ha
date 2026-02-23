@@ -56,15 +56,24 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             plant_name = call.data.get("plant_name")
             use_ai = call.data.get("use_ai", False)
             
-            # Zoek de juiste config entry op basis van de zone naam
+            # Zoek de juiste config entry
             entry_to_update = None
-            for ent in hass.config_entries.async_entries(DOMAIN):
-                if ent.data.get(CONF_ZONE_NAME) == zone_name:
-                    entry_to_update = ent
-                    break
-            
-            if not entry_to_update:
-                _LOGGER.error(f"Geen Flora Planner zone gevonden met naam: {zone_name}")
+            entries = hass.config_entries.async_entries(DOMAIN)
+
+            if zone_name:
+                # Als gebruiker specifiek een zone noemt, zoek die
+                for ent in entries:
+                    if ent.data.get(CONF_ZONE_NAME) == zone_name:
+                        entry_to_update = ent
+                        break
+                if not entry_to_update:
+                    _LOGGER.error(f"Geen Flora Planner zone gevonden met naam: {zone_name}")
+                    return
+            elif len(entries) == 1:
+                # Geen zone opgegeven, maar er is er maar één? Gebruik die!
+                entry_to_update = entries[0]
+            else:
+                _LOGGER.error("Geen zone opgegeven en er zijn meerdere (of geen) Flora Planner configuraties.")
                 return
 
             # Standaard waarden

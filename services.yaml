@@ -4,8 +4,8 @@ add_plant:
   fields:
     zone_name:
       name: Zone naam
-      description: De naam van de zone waar de plant moet komen (bijv. Achtertuin).
-      required: true
+      description: De naam van de zone. Optioneel als je maar één zone hebt.
+      required: false
       selector:
         text:
     plant_name:

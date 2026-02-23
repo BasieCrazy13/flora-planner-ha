@@ -90,9 +90,10 @@ content: >
 
 Wil je snel planten toevoegen vanaf je dashboard?
 
-1.  **Maak eerst twee helpers aan:**
+1.  **Maak eerst drie helpers aan:**
     *   Ga naar **Instellingen** -> **Apparaten & Diensten** -> **Helpers**.
     *   Maak een **Tekst** helper aan met naam `Nieuwe Plant Naam` (entity id: `input_text.nieuwe_plant_naam`).
+    *   Maak een **Tekst** helper aan met naam `Flora Zone Naam` (entity id: `input_text.flora_zone_naam`).
     *   Maak een **Schakelaar** helper aan met naam `Gebruik AI voor Plant` (entity id: `input_boolean.gebruik_ai_voor_plant`).
 
 2.  **Gebruik deze YAML code voor je dashboard kaart:**
@@ -102,6 +103,8 @@ type: vertical-stack
 cards:
   - type: entities
     entities:
+      - entity: input_text.flora_zone_naam
+        name: Zone (bijv. Achtertuin)
       - entity: input_text.nieuwe_plant_naam
         name: Naam van de plant
       - entity: input_boolean.gebruik_ai_voor_plant
@@ -113,7 +116,7 @@ cards:
       action: call-service
       service: flora_planner.add_plant
       data:
-        zone_name: "Achtertuin"  # <-- Pas dit aan naar jouw zone naam!
+        zone_name: "{{ states('input_text.flora_zone_naam') }}"
         plant_name: "{{ states('input_text.nieuwe_plant_naam') }}"
         use_ai: "{{ states('input_boolean.gebruik_ai_voor_plant') }}"
 ```
