@@ -47,6 +47,8 @@ class WeeklyStorySensor(CoordinatorEntity, SensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
-        return {
-            "full_story": self.coordinator.data.get(ATTR_WEEKLY_STORY, "Nog geen verhaal gegenereerd.")
-        }
+        if self.coordinator.data:
+            return {
+                "full_story": self.coordinator.data.get(ATTR_WEEKLY_STORY, "Nog geen verhaal gegenereerd.")
+            }
+        return {}
