@@ -137,8 +137,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     f"'watering_interval' (dagen), 'drought_tolerant' (boolean, true als plant alleen water nodig heeft bij hitte/droogte), 'min_moisture' (0-100), 'feeding_interval' (dagen), "
                     f"'water_start_month' (1-12), 'water_end_month' (1-12), 'feed_start_month' (1-12), 'feed_end_month' (1-12), "
                     f"'pruning_month' (1-12), 'sowing_month' (1-12, 0 als nvt), 'harvesting_month' (1-12, 0 als nvt), "
-                    f"en 'advice' (een duidelijke uitleg in het Nederlands over: waterbehoefte en hoeveelheid, "
-                    f"waarom deze vochtigheid, signalen van te veel/weinig water, en specifieke seizoens/snoei tips). "
+                    f"en 'advice' (een duidelijke uitleg in het Nederlands over: waterbehoefte, "
+                    f"waarom deze vochtigheid, signalen van te veel/weinig water, en specifieke momenten voor extra voeding). "
                     f"Geef alleen de JSON string terug zonder markdown opmaak."
                 )
                 

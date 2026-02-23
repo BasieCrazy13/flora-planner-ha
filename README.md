@@ -89,7 +89,7 @@ content: >
 
 Wil je snel planten toevoegen vanaf je dashboard? Omdat Home Assistant geen standaard invulformulier heeft, moet je hiervoor een aantal **Helpers** aanmaken.
 
-1.  **Maak deze 10 Helpers aan:**
+1.  **Maak deze 12 Helpers aan:**
     Ga naar **Instellingen** -> **Apparaten & Diensten** -> **Helpers** en maak de volgende items aan:
 
     | Type | Naam | Entity ID (automatisch) | Instellingen |
@@ -97,6 +97,8 @@ Wil je snel planten toevoegen vanaf je dashboard? Omdat Home Assistant geen stan
     | **Tekst** | Nieuwe Plant Naam | `input_text.nieuwe_plant_naam` | - |
     | **Tekst** | Flora Zone Naam | `input_text.flora_zone_naam` | - |
     | **Nummer** | Water Interval | `input_number.water_interval` | Min: 1, Max: 60 |
+    | **Nummer** | Startmaand Water | `input_number.startmaand_water` | Min: 1, Max: 12 |
+    | **Nummer** | Eindmaand Water | `input_number.eindmaand_water` | Min: 1, Max: 12 |
     | **Nummer** | Min Vochtigheid | `input_number.min_vochtigheid` | Min: 0, Max: 100 |
     | **Nummer** | Voeding Interval | `input_number.voeding_interval` | Min: 1, Max: 365 |
     | **Nummer** | Startmaand Voeding | `input_number.startmaand_voeding` | Min: 1, Max: 12 |
@@ -122,6 +124,16 @@ sequence:
       entity_id: input_number.water_interval
     data:
       value: "{{ ai_advies.watering_interval | int(default=7) }}"
+  - service: input_number.set_value
+    target:
+      entity_id: input_number.startmaand_water
+    data:
+      value: "{{ ai_advies.water_start_month | int(default=1) }}"
+  - service: input_number.set_value
+    target:
+      entity_id: input_number.eindmaand_water
+    data:
+      value: "{{ ai_advies.water_end_month | int(default=12) }}"
   - service: input_number.set_value
     target:
       entity_id: input_number.min_vochtigheid
