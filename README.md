@@ -88,7 +88,7 @@ content: >
 
 ## 🎨 Dashboard Kaart voor Planten Toevoegen
 
-Wil je snel planten toevoegen vanaf je dashboard?
+Wil je snel planten toevoegen vanaf je dashboard? Omdat we variabelen gebruiken (de tekstvelden), moeten we hiervoor een **Script** gebruiken in Home Assistant.
 
 1.  **Maak eerst drie helpers aan:**
     *   Ga naar **Instellingen** -> **Apparaten & Diensten** -> **Helpers**.
@@ -96,7 +96,33 @@ Wil je snel planten toevoegen vanaf je dashboard?
     *   Maak een **Tekst** helper aan met naam `Flora Zone Naam` (entity id: `input_text.flora_zone_naam`).
     *   Maak een **Schakelaar** helper aan met naam `Gebruik AI voor Plant` (entity id: `input_boolean.gebruik_ai_voor_plant`).
 
-2.  **Gebruik deze YAML code voor je dashboard kaart:**
+2.  **Maak een Script aan:**
+    *   Ga naar **Instellingen** -> **Automatiseringen & Scenes** -> **Scripts**.
+    *   Klik op **Script toevoegen** -> **Nieuw script**.
+    *   Klik op de 3 puntjes rechtsboven -> **Bewerken in YAML**.
+    *   Plak onderstaande code en sla op als `Flora Plant Toevoegen`:
+
+```yaml
+alias: Flora Plant Toevoegen
+sequence:
+  - service: flora_planner.add_plant
+    data:
+      zone_name: "{{ states('input_text.flora_zone_naam') }}"
+      plant_name: "{{ states('input_text.nieuwe_plant_naam') }}"
+      use_ai: "{{ states('input_boolean.gebruik_ai_voor_plant') }}"
+  - service: input_text.set_value
+    target:
+      entity_id: input_text.nieuwe_plant_naam
+    data:
+      value: ""
+  - service: input_boolean.turn_off
+    target:
+      entity_id: input_boolean.gebruik_ai_voor_plant
+mode: single
+icon: mdi:flower-plus
+```
+
+3.  **Gebruik deze YAML code voor je dashboard kaart:**
 
 ```yaml
 type: vertical-stack
@@ -114,9 +140,5 @@ cards:
     icon: mdi:plus
     tap_action:
       action: call-service
-      service: flora_planner.add_plant
-      data:
-        zone_name: "{{ states('input_text.flora_zone_naam') }}"
-        plant_name: "{{ states('input_text.nieuwe_plant_naam') }}"
-        use_ai: "{{ states('input_boolean.gebruik_ai_voor_plant') }}"
+      service: script.flora_plant_toevoegen
 ```
