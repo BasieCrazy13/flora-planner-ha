@@ -99,12 +99,43 @@ Wil je snel planten toevoegen vanaf je dashboard?
     *   *(Optioneel voor handmatig)* Maak een **Nummer** helper aan: `Zaaimaand` (entity id: `input_number.zaaimaand`, min 0, max 12).
     *   *(Optioneel voor handmatig)* Maak een **Nummer** helper aan: `Oogstmaand` (entity id: `input_number.oogstmaand`, min 0, max 12).
 
-2.  **Maak een Script aan:**
+2.  **Maak de Scripts aan:**
     *   Ga naar **Instellingen** -> **Automatiseringen & Scenes** -> **Scripts**.
-    *   Klik op **Script toevoegen** -> **Nieuw script**.
-    *   Klik op de 3 puntjes rechtsboven -> **Bewerken in YAML**.
-    *   Plak onderstaande code en sla op als `Flora Plant Toevoegen`:
+    
+    **Script 1: Flora AI Advies (Sla op als `flora_ai_advies`)**
+```yaml
+alias: Flora AI Advies
+sequence:
+  - service: flora_planner.get_ai_advice
+    data:
+      plant_name: "{{ states('input_text.nieuwe_plant_naam') }}"
+      zone_name: "{{ states('input_text.flora_zone_naam') }}"
+    response_variable: ai_advies
+  - service: input_number.set_value
+    target:
+      entity_id: input_number.water_interval
+    data:
+      value: "{{ ai_advies.watering_interval | int(default=7) }}"
+  - service: input_number.set_value
+    target:
+      entity_id: input_number.min_vochtigheid
+    data:
+      value: "{{ ai_advies.min_moisture | int(default=20) }}"
+  - service: input_number.set_value
+    target:
+      entity_id: input_number.zaaimaand
+    data:
+      value: "{{ ai_advies.sowing_month | int(default=0) }}"
+  - service: input_number.set_value
+    target:
+      entity_id: input_number.oogstmaand
+    data:
+      value: "{{ ai_advies.harvesting_month | int(default=0) }}"
+mode: single
+icon: mdi:robot
+```
 
+    **Script 2: Flora Plant Toevoegen (Sla op als `flora_plant_toevoegen`)**
 ```yaml
 alias: Flora Plant Toevoegen
 sequence:
@@ -112,8 +143,7 @@ sequence:
     data:
       zone_name: "{{ states('input_text.flora_zone_naam') }}"
       plant_name: "{{ states('input_text.nieuwe_plant_naam') }}"
-      use_ai: "{{ states('input_boolean.gebruik_ai_voor_plant') }}"
-      # We gebruiken nu altijd de waarden uit de helpers (die je zelf of via AI hebt ingevuld):
+      use_ai: false  # We hebben het advies al opgehaald, dus nu niet meer overschrijven!
       watering_interval: "{{ states('input_number.water_interval') | int(default=7) }}"
       sowing_month: "{{ states('input_number.zaaimaand') | int(default=0) }}"
       harvesting_month: "{{ states('input_number.oogstmaand') | int(default=0) }}"
@@ -123,9 +153,6 @@ sequence:
       entity_id: input_text.nieuwe_plant_naam
     data:
       value: ""
-  - service: input_boolean.turn_off
-    target:
-      entity_id: input_boolean.gebruik_ai_voor_plant
 mode: single
 icon: mdi:flower-plus
 ```

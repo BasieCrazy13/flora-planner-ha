@@ -6,7 +6,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, CONF_ZONE_NAME, ATTR_WEEKLY_STORY
+from .const import DOMAIN, CONF_ZONE_NAME, ATTR_WEEKLY_STORY, CONF_PLANTS
 from . import FloraPlannerCoordinator
 
 
@@ -47,8 +47,27 @@ class WeeklyStorySensor(CoordinatorEntity, SensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
+        attributes = {}
         if self.coordinator.data:
-            return {
-                "full_story": self.coordinator.data.get(ATTR_WEEKLY_STORY, "Nog geen verhaal gegenereerd.")
-            }
-        return {}
+            attributes["full_story"] = self.coordinator.data.get(ATTR_WEEKLY_STORY, "Nog geen verhaal gegenereerd.")
+            
+            # Voeg details van alle planten toe zodat je ze op het dashboard kunt zien
+            plants = self.coordinator.config_entry.options.get(CONF_PLANTS, [])
+            plant_details = []
+            for plant in plants:
+                detail = {
+                    "naam": plant.get("plant_name"),
+                    "water_interval": plant.get("watering_interval"),
+                    "min_vochtigheid": plant.get("min_moisture"),
+                    "bodem_sensor": plant.get("soil_moisture_entity"),
+                    "huidige_vochtigheid": "Onbekend"
+                }
+                if detail["bodem_sensor"]:
+                    state = self.hass.states.get(detail["bodem_sensor"])
+                    if state:
+                        detail["huidige_vochtigheid"] = state.state
+                plant_details.append(detail)
+            
+            attributes["planten_lijst"] = plant_details
+            
+        return attributes

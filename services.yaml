@@ -46,3 +46,18 @@ add_plant:
       default: 20
       selector:
         number: {min: 0, max: 100}
+
+get_ai_advice:
+  name: Vraag AI Advies
+  description: Haalt verzorgingsadvies op van Gemini zonder de plant direct op te slaan.
+  fields:
+    plant_name:
+      name: Plant naam
+      required: true
+      selector:
+        text:
+    zone_name:
+      name: Zone naam
+      description: Voor context (binnen/buiten/kas).
+      selector:
+        text:
