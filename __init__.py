@@ -7,7 +7,7 @@ import json
 import voluptuous as vol
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
+from homeassistant.core import HomeAssistant, ServiceCall
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -24,34 +24,13 @@ from .const import (
     SOIL_MOISTURE_THRESHOLD,
     PRECIP_THRESHOLD,
     TEMP_THRESHOLD,
+    COLD_THRESHOLD,
     CONF_GEMINI_API_KEY,
     ATTR_WEEKLY_STORY,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
-async def _call_gemini_api(hass: HomeAssistant, api_key: str, prompt: str) -> str:
-    """Call Gemini API with fallback models."""
-    session = async_get_clientsession(hass)
-    models = ["gemini-1.5-flash", "gemini-pro"]
-    
-    for model in models:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
-        payload = {"contents": [{"parts": [{"text": prompt}]}]}
-        try:
-            async with session.post(url, json=payload) as response:
-                if response.status == 200:
-                    result = await response.json()
-                    return result["candidates"][0]["content"]["parts"][0]["text"]
-                elif response.status == 404:
-                    _LOGGER.warning(f"Model {model} niet gevonden (404), proberen volgende...")
-                    continue
-                else:
-                    _LOGGER.error(f"Gemini API error bij model {model}: {response.status}")
-        except Exception as e:
-            _LOGGER.error(f"Fout bij aanroepen Gemini {model}: {e}")
-    
-    raise Exception("Alle Gemini modellen faalden.")
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Flora Planner from a config entry."""
@@ -61,6 +40,141 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if not api_key:
         _LOGGER.error("Gemini API key is not configured.")
         return False
+
+    # --- SERVICE REGISTRATIE (Nu helemaal bovenaan) ---
+    
+    # 1. Service: Plant Toevoegen
+    if not hass.services.has_service(DOMAIN, "add_plant"):
+        async def async_handle_add_plant(call: ServiceCall):
+            """Handle the service call to add a plant."""
+            zone_name = call.data.get("zone_name")
+            plant_name = call.data.get("plant_name")
+            use_ai = call.data.get("use_ai", False)
+            
+            # Zoek de juiste config entry
+            entry_to_update = None
+            entries = hass.config_entries.async_entries(DOMAIN)
+
+            if zone_name:
+                for ent in entries:
+                    if ent.data.get(CONF_ZONE_NAME) == zone_name:
+                        entry_to_update = ent
+                        break
+                if not entry_to_update:
+                    _LOGGER.error(f"Geen Flora Planner zone gevonden met naam: {zone_name}")
+                    return
+            elif len(entries) == 1:
+                entry_to_update = entries[0]
+            else:
+                _LOGGER.error("Geen zone opgegeven en er zijn meerdere (of geen) Flora Planner configuraties.")
+                return
+
+            # Standaard waarden
+            plant_data = {
+                "plant_name": plant_name,
+                "anchor_date": date.today().isoformat(),
+                "watering_interval": call.data.get("watering_interval", 7),
+                "feeding_interval": call.data.get("feeding_interval", 30),
+                "pruning_month": str(call.data.get("pruning_month", 1)),
+                "sowing_month": str(call.data.get("sowing_month", 0)),
+                "harvesting_month": str(call.data.get("harvesting_month", 0)),
+                "min_moisture": int(call.data.get("min_moisture", 20)),
+                "drought_only": bool(call.data.get("drought_only", False)),
+            }
+
+            # Als AI aanstaat (via de oude methode), probeer gegevens op te halen
+            if use_ai:
+                api_key = entry_to_update.data.get(CONF_GEMINI_API_KEY)
+                if api_key:
+                    try:
+                        prompt = f"Voor de plant '{plant_name}', geef JSON met 'watering_interval' (dagen), 'drought_tolerant' (boolean, true als plant alleen water nodig heeft bij hitte/droogte), 'feeding_interval' (dagen), 'pruning_month' (1-12), 'sowing_month' (1-12, 0 als nvt), 'harvesting_month' (1-12, 0 als nvt)."
+                        text = await _call_gemini_api(hass, api_key, prompt)
+                        clean_text = text.strip().replace("```json", "").replace("```", "")
+                        ai_data = json.loads(clean_text)
+                        
+                        # Simpele overname van waarden (sanity checks zitten in de config flow / script logica)
+                        if ai_data.get("watering_interval"): plant_data["watering_interval"] = ai_data["watering_interval"]
+                        if ai_data.get("feeding_interval"): plant_data["feeding_interval"] = ai_data["feeding_interval"]
+                        if ai_data.get("pruning_month"): plant_data["pruning_month"] = str(ai_data["pruning_month"])
+                        if ai_data.get("drought_tolerant") is not None: plant_data["drought_only"] = ai_data["drought_tolerant"]
+
+                    except Exception as e:
+                        _LOGGER.warning(f"AI service call mislukt voor {plant_name}: {e}")
+                        persistent_notification.async_create(hass, f"AI mislukt voor {plant_name}, standaardwaarden gebruikt.", "Flora Planner")
+
+            # Update de configuratie
+            current_plants = list(entry_to_update.options.get(CONF_PLANTS, []))
+            current_plants.append(plant_data)
+            
+            hass.config_entries.async_update_entry(
+                entry_to_update, 
+                options={**entry_to_update.options, CONF_PLANTS: current_plants}
+            )
+            persistent_notification.async_create(hass, f"Plant '{plant_name}' succesvol toegevoegd aan {zone_name or 'je zone'}!", "Flora Planner")
+
+        hass.services.async_register(DOMAIN, "add_plant", async_handle_add_plant)
+
+    # 2. Service: AI Advies Ophalen
+    if not hass.services.has_service(DOMAIN, "get_ai_advice"):
+        async def async_handle_get_ai_advice(call: ServiceCall) -> dict:
+            """Haal advies op van AI en geef het terug (voor in scripts)."""
+            plant_name = call.data.get("plant_name")
+            zone_name = call.data.get("zone_name", "")
+            api_key = None
+            
+            # Zoek een API key in de configuraties
+            for ent in hass.config_entries.async_entries(DOMAIN):
+                if ent.data.get(CONF_GEMINI_API_KEY):
+                    api_key = ent.data.get(CONF_GEMINI_API_KEY)
+                    break
+            
+            if not api_key:
+                raise Exception("Geen API key gevonden in Flora Planner configuratie.")
+
+            try:
+                prompt = (
+                    f"Voor de plant '{plant_name}' (locatie: {zone_name}), geef een JSON-object met: "
+                    f"'watering_interval' (dagen), 'drought_tolerant' (boolean, true als plant alleen water nodig heeft bij hitte/droogte), 'min_moisture' (0-100), 'feeding_interval' (dagen), "
+                    f"'pruning_month' (1-12), 'sowing_month' (1-12, 0 als nvt), 'harvesting_month' (1-12, 0 als nvt), "
+                    f"en 'advice' (een duidelijke uitleg in het Nederlands over: waterbehoefte en hoeveelheid, "
+                    f"waarom deze vochtigheid, signalen van te veel/weinig water, en specifieke seizoens/snoei tips). "
+                    f"Geef alleen de JSON string terug zonder markdown opmaak."
+                )
+                
+                text = await _call_gemini_api(hass, api_key, prompt)
+                clean_text = text.strip().replace("```json", "").replace("```", "")
+                data = json.loads(clean_text)
+                
+                if "advice" not in data:
+                    data["advice"] = "Geen specifiek advies ontvangen van AI."
+                
+                return data
+
+            except Exception as e:
+                _LOGGER.error(f"AI advies mislukt: {e}")
+                return {
+                    "watering_interval": 7, 
+                    "min_moisture": 20, 
+                    "drought_tolerant": False,
+                    "feeding_interval": 30, 
+                    "pruning_month": 1, 
+                    "sowing_month": 0, 
+                    "harvesting_month": 0,
+                    "advice": f"Kon geen advies ophalen (Fout: {str(e)}). Controleer je API key en internetverbinding."
+                }
+
+        hass.services.async_register(DOMAIN, "get_ai_advice", async_handle_get_ai_advice, supports_response=SupportsResponse.ONLY)
+
+    # --- EINDE SERVICE REGISTRATIE ---
+
+    coordinator = FloraPlannerCoordinator(hass, entry)
+    await coordinator.async_config_entry_first_refresh()
+
+    hass.data[DOMAIN][entry.entry_id] = coordinator
+    
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    
+    entry.async_on_unload(entry.add_update_listener(async_reload_entry))
 
     # Registreer de service om planten toe te voegen (alleen als hij nog niet bestaat)
     if not hass.services.has_service(DOMAIN, "add_plant"):
@@ -107,13 +221,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 api_key = entry_to_update.data.get(CONF_GEMINI_API_KEY)
                 if api_key:
                     try:
+                        session = async_get_clientsession(hass)
                         prompt = f"Voor de plant '{plant_name}', geef JSON met 'watering_interval' (dagen), 'feeding_interval' (dagen), 'pruning_month' (1-12), 'sowing_month' (1-12, 0 als nvt), 'harvesting_month' (1-12, 0 als nvt)."
+                        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={api_key}"
+                        payload = {"contents": [{"parts": [{"text": prompt}]}]}
                         
-                        text = await _call_gemini_api(hass, api_key, prompt)
-                        clean_text = text.strip().replace("```json", "").replace("```", "")
-                        ai_data = json.loads(clean_text)
-                        
-                        # --- Sanity Check ---
+                        async with session.post(url, json=payload) as response:
+                            if response.status == 200:
+                                result = await response.json()
+                                text = result["candidates"][0]["content"]["parts"][0]["text"]
+                                clean_text = text.strip().replace("```json", "").replace("```", "")
+                                ai_data = json.loads(clean_text)
+                                
+                                # --- Sanity Check ---
                                 # Water: Tussen 1 en 60 dagen
                                 ai_water = ai_data.get("watering_interval")
                                 if isinstance(ai_water, int) and 1 <= ai_water <= 60:
@@ -153,68 +273,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             persistent_notification.async_create(hass, f"Plant '{plant_name}' succesvol toegevoegd aan {zone_name or 'je zone'}!", "Flora Planner")
 
         hass.services.async_register(DOMAIN, "add_plant", async_handle_add_plant)
-
-    # Registreer de service om AI advies op te halen (zonder op te slaan)
-    if not hass.services.has_service(DOMAIN, "get_ai_advice"):
-        async def async_handle_get_ai_advice(call: ServiceCall) -> dict:
-            """Haal advies op van AI en geef het terug (voor in scripts)."""
-            plant_name = call.data.get("plant_name")
-            zone_name = call.data.get("zone_name", "")
-            api_key = None
-            
-            # Zoek een API key in de configuraties
-            for ent in hass.config_entries.async_entries(DOMAIN):
-                if ent.data.get(CONF_GEMINI_API_KEY):
-                    api_key = ent.data.get(CONF_GEMINI_API_KEY)
-                    break
-            
-            if not api_key:
-                raise Exception("Geen API key gevonden in Flora Planner configuratie.")
-
-            try:
-                # We voegen de zone/locatie toe aan de prompt voor beter advies
-                prompt = (
-                    f"Voor de plant '{plant_name}' (locatie: {zone_name}), geef een JSON-object met: "
-                    f"'watering_interval' (dagen), 'min_moisture' (0-100), 'feeding_interval' (dagen), "
-                    f"'pruning_month' (1-12), 'sowing_month' (1-12, 0 als nvt), 'harvesting_month' (1-12, 0 als nvt), "
-                    f"en 'advice' (een duidelijke uitleg in het Nederlands over: waterbehoefte en hoeveelheid, "
-                    f"waarom deze vochtigheid, signalen van te veel/weinig water, en specifieke seizoens/snoei tips). "
-                    f"Geef alleen de JSON string terug zonder markdown opmaak."
-                )
-                
-                text = await _call_gemini_api(hass, api_key, prompt)
-                clean_text = text.strip().replace("```json", "").replace("```", "")
-                data = json.loads(clean_text)
-                
-                # Zorg dat advice altijd bestaat
-                if "advice" not in data:
-                    data["advice"] = "Geen specifiek advies ontvangen van AI."
-                
-                return data
-
-            except Exception as e:
-                _LOGGER.error(f"AI advies mislukt: {e}")
-                # Geef veilige defaults terug als het mislukt
-                return {
-                    "watering_interval": 7, 
-                    "min_moisture": 20, 
-                    "feeding_interval": 30, 
-                    "pruning_month": 1, 
-                    "sowing_month": 0, 
-                    "harvesting_month": 0,
-                    "advice": f"Kon geen advies ophalen (Fout: {str(e)}). Controleer je API key en internetverbinding."
-                }
-
-        hass.services.async_register(DOMAIN, "get_ai_advice", async_handle_get_ai_advice, supports_response=SupportsResponse.ONLY)
-
-    coordinator = FloraPlannerCoordinator(hass, entry)
-    await coordinator.async_config_entry_first_refresh()
-
-    hass.data[DOMAIN][entry.entry_id] = coordinator
-    
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-    
-    entry.async_on_unload(entry.add_update_listener(async_reload_entry))
 
     return True
 
@@ -297,9 +355,12 @@ class FloraPlannerCoordinator(DataUpdateCoordinator):
                     anchor_date_obj = date.fromisoformat(plant["anchor_date"])
                     dynamic_interval = base_interval
 
-                    # Heter dan de drempelwaarde? Interval korter maken!
-                    if temp is not None and temp > TEMP_THRESHOLD:
-                        dynamic_interval = max(1, base_interval - 1)
+                    # --- Weer Logica ---
+                    if temp is not None:
+                        if temp > TEMP_THRESHOLD:
+                            dynamic_interval = max(1, int(base_interval / 2)) # Hitte: interval halveren
+                        elif temp < COLD_THRESHOLD:
+                            dynamic_interval = base_interval * 2 # Kou: interval verdubbelen
 
                     days_since_anchor = (today - anchor_date_obj).days
                     is_due = (days_since_anchor % dynamic_interval) == 0 and days_since_anchor >= 0
@@ -403,9 +464,19 @@ class FloraPlannerCoordinator(DataUpdateCoordinator):
             _LOGGER.error("Geen API key gevonden voor verhaal generatie.")
             return "Controleer je API key configuratie."
 
+        session = async_get_clientsession(self.hass)
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={api_key}"
+        payload = {"contents": [{"parts": [{"text": prompt}]}]}
+
         try:
-            text = await _call_gemini_api(self.hass, api_key, prompt)
-            return text.strip().replace('\n', ' ')
+            async with session.post(url, json=payload) as response:
+                if response.status == 200:
+                    result = await response.json()
+                    text = result["candidates"][0]["content"]["parts"][0]["text"]
+                    return text.strip().replace('\n', ' ')
+                else:
+                    _LOGGER.error(f"Gemini API error: {response.status}")
+                    raise Exception(f"API returned {response.status}")
         except Exception as e:
             _LOGGER.warning(f"Could not generate weekly story with Gemini: {e}")
             if language == "nl":

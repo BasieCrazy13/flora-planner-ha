@@ -23,7 +23,8 @@ from .const import (
     CONF_PRUNE_MONTH, CONF_ANCHOR_DATE, CONF_USE_AI,
     CONF_SOIL_MOISTURE_ENTITY, CONF_GEMINI_API_KEY, CONF_MIN_MOISTURE,
     CONF_SOW_MONTH, CONF_HARVEST_MONTH, CONF_SPRINKLER_ENTITY,
-    CONF_CYCLE_MINUTES, CONF_SOAK_MINUTES, CONF_MAX_CYCLES
+    CONF_CYCLE_MINUTES, CONF_SOAK_MINUTES, CONF_MAX_CYCLES,
+    CONF_DROUGHT_ONLY
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -147,6 +148,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
         plant_schema = vol.Schema({
             vol.Required(CONF_WATER_INTERVAL, default=ai_suggestions.get("water", 7)): cv.positive_int,
+            vol.Optional(CONF_DROUGHT_ONLY, default=ai_suggestions.get("drought_only", False)): BooleanSelector(),
             vol.Required(CONF_FEED_INTERVAL, default=ai_suggestions.get("feed", 30)): cv.positive_int,
             vol.Required(CONF_PRUNE_MONTH, default=ai_suggestions.get("prune", "6")): SelectSelector(
                 SelectSelectorConfig(options=list(MONTHS.keys()), mode=SelectSelectorMode.DROPDOWN, translation_key="pruning_months")
@@ -175,7 +177,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
     async def _get_ai_suggestions(self, plant_name: str) -> Dict[str, Any]:
         """Get plant care suggestions from Gemini."""
         prompt = (
-            f"Voor de plant '{plant_name}', geef een JSON-object met 'watering_interval' (dagen), 'min_moisture' (percentage 0-100, standaard 20), "
+            f"Voor de plant '{plant_name}', geef een JSON-object met 'watering_interval' (dagen), 'drought_tolerant' (boolean), 'min_moisture' (percentage 0-100, standaard 20), "
             f"'feeding_interval' (dagen), 'pruning_month' (1-12), 'sowing_month' (1-12, 0=nvt), 'harvesting_month' (1-12, 0=nvt). "
             f"Geef alleen JSON."
         )
@@ -235,6 +237,8 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         if not isinstance(min_moist, int) or min_moist < 0 or min_moist > 100:
             min_moist = 20
 
+        drought_only = data.get("drought_tolerant", False)
+
         return {
             "water": water,
             "feed": feed,
@@ -242,6 +246,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             "sow": sow,
             "harvest": harvest,
             "min_moisture": min_moist,
+            "drought_only": drought_only,
         }
 
     async def async_step_remove_plant(self, user_input=None):

@@ -131,6 +131,9 @@ sequence:
       entity_id: input_number.oogstmaand
     data:
       value: "{{ ai_advies.harvesting_month | int(default=0) }}"
+  - service: input_boolean.turn_{{ 'on' if ai_advies.drought_tolerant else 'off' }}
+    target:
+      entity_id: input_boolean.alleen_bij_droogte
   - service: persistent_notification.create
     data:
       title: "Advies voor {{ states('input_text.nieuwe_plant_naam') }}"
@@ -152,6 +155,7 @@ sequence:
       sowing_month: "{{ states('input_number.zaaimaand') | int(default=0) }}"
       harvesting_month: "{{ states('input_number.oogstmaand') | int(default=0) }}"
       min_moisture: "{{ states('input_number.min_vochtigheid') | int(default=20) }}"
+      drought_only: "{{ states('input_boolean.alleen_bij_droogte') }}"
   - service: input_text.set_value
     target:
       entity_id: input_text.nieuwe_plant_naam
@@ -196,4 +200,6 @@ cards:
         name: Zaaimaand (0=nvt)
       - entity: input_number.oogstmaand
         name: Oogstmaand (0=nvt)
+      - entity: input_boolean.alleen_bij_droogte
+        name: Alleen water bij hitte/droogte?
 ```

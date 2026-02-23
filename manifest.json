@@ -5,7 +5,7 @@
   "documentation": "https://github.com/BasieCrazy13/flora-planner-ha",
   "issue_tracker": "https://github.com/BasieCrazy13/flora-planner-ha/issues",
   "codeowners": ["@BasieCrazy13"],
-  "version": "0.9.2",
+  "version": "0.9.4",
   "iot_class": "cloud_polling",
   "requirements": [],
   "dependencies": ["weather"],

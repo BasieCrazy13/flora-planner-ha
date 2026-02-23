@@ -46,6 +46,12 @@ add_plant:
       default: 20
       selector:
         number: {min: 0, max: 100}
+    drought_only:
+      name: Alleen bij droogte/hitte
+      description: Als waar, negeer interval tenzij het heet is (>28C) of grond droog is.
+      default: false
+      selector:
+        boolean:
 
 get_ai_advice:
   name: Vraag AI Advies
