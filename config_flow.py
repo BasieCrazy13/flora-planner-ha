@@ -42,13 +42,17 @@ class FloraPlannerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Flora Planner."""
     VERSION = 1
 
+    def __init__(self):
+        """Initialize the config flow."""
+        self._api_key = None
+
     async def async_step_user(self, user_input=None):
         """Handle the initial step to set up API Key."""
         errors = {}
         if user_input is not None:
             # Re-validate here in case user changes it
             if await validate_api_key(self.hass, user_input[CONF_GEMINI_API_KEY]):
-                self.hass.data[DOMAIN] = {"api_key": user_input[CONF_GEMINI_API_KEY]}
+                self._api_key = user_input[CONF_GEMINI_API_KEY]
                 return await self.async_step_zone()
             errors["base"] = "invalid_auth"
 
@@ -61,8 +65,11 @@ class FloraPlannerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_zone(self, user_input=None):
         """Handle the zone creation step."""
         if user_input is not None:
+            if not self._api_key:
+                return self.async_abort(reason="unknown")
+                
             # Combine API key from previous step with zone data
-            data = {**self.hass.data[DOMAIN], **user_input}
+            data = {CONF_GEMINI_API_KEY: self._api_key, **user_input}
             return self.async_create_entry(title=user_input[CONF_ZONE_NAME], data=data, options={CONF_PLANTS: []})
 
         return self.async_show_form(
