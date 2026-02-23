@@ -222,6 +222,10 @@ class FloraPlannerCoordinator(DataUpdateCoordinator):
             )
             
         api_key = self.config_entry.data[CONF_GEMINI_API_KEY]
+        if not api_key:
+            _LOGGER.error("Geen API key gevonden voor verhaal generatie.")
+            return "Controleer je API key configuratie."
+
         session = async_get_clientsession(self.hass)
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
         payload = {"contents": [{"parts": [{"text": prompt}]}]}
