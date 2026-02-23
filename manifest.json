@@ -1,0 +1,14 @@
+{
+  "domain": "flora_planner",
+  "name": "Flora Planner",
+  "config_flow": true,
+  "documentation": "https://github.com/your_username/flora_planner_ha",
+  "issue_tracker": "https://github.com/your_username/flora_planner_ha/issues",
+  "codeowners": ["@your_username"],
+  "version": "1.1.0",
+  "iot_class": "cloud_polling",
+  "requirements": ["google-generativeai>=0.1.0"],
+  "dependencies": ["calendar", "binary_sensor", "weather"],
+  "platforms": ["calendar", "binary_sensor", "sensor"],
+  "loggers": ["custom_components.flora_planner"]
+}

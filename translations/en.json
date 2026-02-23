@@ -1,0 +1,72 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Set up Flora Planner AI",
+        "description": "Please enter your Google Gemini API key. This is required for all AI features.",
+        "data": {
+          "gemini_api_key": "Gemini API Key"
+        }
+      },
+      "zone": {
+        "title": "Create a new Flora Planner Zone",
+        "description": "Each zone has its own weather entity and set of plants.",
+        "data": {
+          "zone_name": "Zone Name (e.g., Backyard)",
+          "weather_entity": "Weather Entity"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Invalid Gemini API key. Please check and try again.",
+      "cannot_connect": "Failed to connect to the service.",
+      "unknown": "Unexpected error"
+    },
+    "abort": {
+      "already_configured": "This zone is already configured.",
+      "no_plants_to_remove": "There are no plants in this zone to remove."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Manage Zone Plants",
+        "menu_options": {
+          "add_plant_start": "Add a new plant",
+          "remove_plant": "Remove a plant"
+        }
+      },
+      "add_plant_start": {
+        "title": "Add a New Plant (Step 1 of 2)",
+        "data": {
+          "plant_name": "Plant Name (e.g., Tomato)",
+          "use_ai": "Use AI to suggest care intervals?"
+        }
+      },
+      "add_plant_details": {
+        "title": "Add a New Plant (Step 2 of 2)",
+        "description": "Verify the details for {plant_name}. AI suggestions have been pre-filled.",
+        "data": {
+          "watering_interval": "Water Interval (days)",
+          "feeding_interval": "Feed Interval (days)",
+          "pruning_month": "Pruning Month",
+          "soil_moisture_entity": "Soil Moisture Sensor (Optional)"
+        }
+      },
+      "remove_plant": {
+        "title": "Remove a Plant",
+        "data": {
+          "plant_to_remove": "Select plant to remove"
+        }
+      }
+    },
+    "error": {
+      "ai_failure": "Failed to get suggestions from the AI. Please try again or enter manually."
+    }
+  },
+  "pruning_months": {
+    "1": "January", "2": "February", "3": "March", "4": "April",
+    "5": "May", "6": "June", "7": "July", "8": "August",
+    "9": "September", "10": "October", "11": "November", "12": "December"
+  }
+}

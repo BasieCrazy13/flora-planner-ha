@@ -1,0 +1,72 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Flora Planner AI Instellen",
+        "description": "Voer je Google Gemini API-sleutel in. Deze is nodig voor alle AI-functies.",
+        "data": {
+          "gemini_api_key": "Gemini API-sleutel"
+        }
+      },
+      "zone": {
+        "title": "Creëer een nieuwe Flora Planner Zone",
+        "description": "Elke zone heeft zijn eigen weer-entiteit en planten.",
+        "data": {
+          "zone_name": "Naam van de zone (bijv. Achtertuin)",
+          "weather_entity": "Weer-entiteit"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Ongeldige Gemini API-sleutel. Controleer de sleutel en probeer het opnieuw.",
+      "cannot_connect": "Kon geen verbinding maken met de service.",
+      "unknown": "Onverwachte fout"
+    },
+    "abort": {
+      "already_configured": "Deze zone is al geconfigureerd.",
+      "no_plants_to_remove": "Er zijn geen planten in deze zone om te verwijderen."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Beheer Planten in Zone",
+        "menu_options": {
+          "add_plant_start": "Voeg een nieuwe plant toe",
+          "remove_plant": "Verwijder een plant"
+        }
+      },
+      "add_plant_start": {
+        "title": "Nieuwe Plant Toevoegen (Stap 1 van 2)",
+        "data": {
+          "plant_name": "Naam van de plant (bijv. Tomaat)",
+          "use_ai": "AI gebruiken voor zorg-intervallen?"
+        }
+      },
+      "add_plant_details": {
+        "title": "Nieuwe Plant Toevoegen (Stap 2 van 2)",
+        "description": "Controleer de gegevens voor {plant_name}. AI-suggesties zijn vooraf ingevuld.",
+        "data": {
+          "watering_interval": "Watergeef-interval (dagen)",
+          "feeding_interval": "Voedings-interval (dagen)",
+          "pruning_month": "Snoeimaand",
+          "soil_moisture_entity": "Bodemvochtigheidssensor (Optioneel)"
+        }
+      },
+      "remove_plant": {
+        "title": "Verwijder een Plant",
+        "data": {
+          "plant_to_remove": "Selecteer plant om te verwijderen"
+        }
+      }
+    },
+    "error": {
+      "ai_failure": "Kon geen suggesties ophalen van de AI. Probeer het opnieuw of vul de gegevens handmatig in."
+    }
+  },
+  "pruning_months": {
+    "1": "Januari", "2": "Februari", "3": "Maart", "4": "April",
+    "5": "Mei", "6": "Juni", "7": "Juli", "8": "Augustus",
+    "9": "September", "10": "Oktober", "11": "November", "12": "December"
+  }
+}
