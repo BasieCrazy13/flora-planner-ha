@@ -4,8 +4,6 @@ import logging
 from datetime import timedelta, datetime, date
 import random
 
-import google.generativeai as genai
-
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -38,6 +36,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         return False
 
     try:
+        import google.generativeai as genai
         genai.configure(api_key=api_key)
     except Exception as e:
         _LOGGER.error(f"Failed to configure Gemini API: {e}")
@@ -71,7 +70,13 @@ class FloraPlannerCoordinator(DataUpdateCoordinator):
         self.config_entry = config_entry
         self.zone_name = self.config_entry.data[CONF_ZONE_NAME]
         self.weather_entity = self.config_entry.data[CONF_WEATHER_ENTITY]
-        self.gemini_model = genai.GenerativeModel('gemini-pro')
+        
+        try:
+            import google.generativeai as genai
+            self.gemini_model = genai.GenerativeModel('gemini-pro')
+        except ImportError:
+            self.gemini_model = None
+            _LOGGER.warning("Google Generative AI library not found. AI features will be disabled.")
 
         super().__init__(
             hass,
@@ -209,6 +214,9 @@ class FloraPlannerCoordinator(DataUpdateCoordinator):
     async def _generate_story(self, tasks: list[str]) -> str:
         """Generate a weekly story using Gemini."""
         language = self.hass.config.language
+
+        if not self.gemini_model:
+            return "AI niet beschikbaar." if language == "nl" else "AI not available."
 
         if not tasks:
             if language == "nl":

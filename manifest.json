@@ -5,9 +5,9 @@
   "documentation": "https://github.com/BasieCrazy13/flora-planner-ha",
   "issue_tracker": "https://github.com/BasieCrazy13/flora-planner-ha/issues",
   "codeowners": ["@BasieCrazy13"],
-  "version": "1.1.0",
+  "version": "0.8.1",
   "iot_class": "cloud_polling",
-  "requirements": ["google-generativeai>=0.1.0"],
+  "requirements": ["google-generativeai>=0.8.3"],
   "dependencies": ["weather"],
   "platforms": ["sensor", "binary_sensor", "calendar"],
   "loggers": ["custom_components.flora_planner"]

@@ -6,8 +6,6 @@ from datetime import date
 from typing import Any, Dict
 
 import voluptuous as vol
-import google.generativeai as genai
-from google.api_core import exceptions as google_exceptions
 
 from homeassistant import config_entries
 from homeassistant.core import callback
@@ -30,6 +28,13 @@ MONTHS = {str(i): f"{i}" for i in range(1, 13)}
 
 async def validate_api_key(api_key: str) -> bool:
     """Validate the Gemini API key."""
+    try:
+        import google.generativeai as genai
+        from google.api_core import exceptions as google_exceptions
+    except ImportError:
+        _LOGGER.error("Google Generative AI library not found.")
+        return False
+
     try:
         genai.configure(api_key=api_key)
         # The model listing is a lightweight way to check auth
@@ -155,16 +160,18 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
     async def _get_ai_suggestions(self, plant_name: str) -> Dict[str, Any]:
         """Get plant care suggestions from Gemini."""
+        import google.generativeai as genai
+
         prompt = (
             f"Voor de plant '{plant_name}', geef een JSON-object met 'watering_interval' in dagen, "
             f"'feeding_interval' in dagen, en 'pruning_month' als een nummer (1-12). "
             f"Geef alleen de JSON terug."
         )
         api_key = self.config_entry.data.get(CONF_GEMINI_API_KEY)
-        model = genai.GenerativeModel('gemini-pro')
         
         def _generate():
             genai.configure(api_key=api_key)
+            model = genai.GenerativeModel('gemini-pro')
             return model.generate_content(prompt)
 
         response = await self.hass.async_to_executor(_generate)

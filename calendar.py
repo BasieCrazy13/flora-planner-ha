@@ -40,6 +40,7 @@ class FloraPlannerCalendar(CoordinatorEntity, CalendarEntity):
         self._zone_name = config_entry.data[CONF_ZONE_NAME]
         self._attr_name = f"Flora Planner {self._zone_name}"
         self._attr_unique_id = f"{config_entry.entry_id}_calendar"
+        self._attr_icon = "mdi:flower"
         self._event: CalendarEvent | None = None
 
     @property
