@@ -7,7 +7,7 @@ import json
 import voluptuous as vol
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
+from homeassistant.core import HomeAssistant, ServiceCall
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -45,8 +45,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # --- SERVICE REGISTRATIE (Nu helemaal bovenaan) ---
     
     # 1. Service: Plant Toevoegen
-    if not hass.services.has_service(DOMAIN, "add_plant"):
-        async def async_handle_add_plant(call: ServiceCall):
+    async def async_handle_add_plant(call: ServiceCall):
             """Handle the service call to add a plant."""
             zone_name = call.data.get("zone_name")
             plant_name = call.data.get("plant_name")
@@ -114,11 +113,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             )
             persistent_notification.async_create(hass, f"Plant '{plant_name}' succesvol toegevoegd aan {zone_name or 'je zone'}!", "Flora Planner")
 
-        hass.services.async_register(DOMAIN, "add_plant", async_handle_add_plant)
+    hass.services.async_register(DOMAIN, "add_plant", async_handle_add_plant)
 
     # 2. Service: AI Advies Ophalen
-    if not hass.services.has_service(DOMAIN, "get_ai_advice"):
-        async def async_handle_get_ai_advice(call: ServiceCall) -> dict:
+    async def async_handle_get_ai_advice(call: ServiceCall) -> dict:
             """Haal advies op van AI en geef het terug (voor in scripts)."""
             plant_name = call.data.get("plant_name")
             zone_name = call.data.get("zone_name", "")
@@ -170,7 +168,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     "advice": f"Kon geen advies ophalen (Fout: {str(e)}). Controleer je API key en internetverbinding."
                 }
 
-        hass.services.async_register(DOMAIN, "get_ai_advice", async_handle_get_ai_advice, supports_response=SupportsResponse.ONLY)
+    hass.services.async_register(DOMAIN, "get_ai_advice", async_handle_get_ai_advice, supports_response=SupportsResponse.ONLY)
 
     # --- EINDE SERVICE REGISTRATIE ---
 
